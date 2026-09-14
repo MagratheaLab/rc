@@ -8,7 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from rc.config import Config, gate_digest
+from rc.config import Config
 from rc.delivery import check_tree
 from rc.linter import lint_paths, sha256_text
 from rc.packet import load_packet_file
@@ -68,12 +68,18 @@ def _docker_available() -> bool:
         return False
 
 
+def _docker_run_ref(image: str) -> str:
+    """Local `name@sha256:<image-id>` is not a registry digest. Run by id or tag."""
+    if "@" not in image:
+        return image
+    name, digest = image.split("@", 1)
+    if digest.startswith("sha256:"):
+        return digest
+    return name or image
+
+
 def _run_lake_docker(image: str, src: Path, target: str) -> tuple[int, str]:
-    digest = gate_digest(image)
-    run_image = image
-    # Local builds are addressed by image id; registry pins use name@sha256.
-    if digest and ":" in image.split("@", 1)[0]:
-        run_image = image
+    run_image = _docker_run_ref(image)
     cmd = [
         "docker",
         "run",
@@ -85,7 +91,7 @@ def _run_lake_docker(image: str, src: Path, target: str) -> tuple[int, str]:
         "--cap-drop",
         "ALL",
         "--security-opt",
-        "no-new-privileges",
+        "no-new-privileges:true",
         "--memory",
         "2g",
         "--cpus",
@@ -106,7 +112,8 @@ def _run_lake_docker(image: str, src: Path, target: str) -> tuple[int, str]:
 
 
 def run(cfg: Config, argv: list[str]) -> int:
-    ci = os.environ.get("GITHUB_ACTIONS") == "true" or "--ci" in argv
+    # Worker `rc gate` on GHA must not require CERTIFICATE; world CI passes --ci.
+    ci = "--ci" in argv
     world = find_world(cfg.world)
     # Packet id: argv or the only state file.
     packet_id = next((a for a in argv if a.startswith("P-")), "")
@@ -176,7 +183,9 @@ def run(cfg: Config, argv: list[str]) -> int:
                     lake_target = packet.lean_declaration.split(".")[0]
                 lake_exit, lake_out = _run_lake_docker(cfg.gate_image, src, lake_target)
                 if lake_exit != 0:
-                    errors.append(f"lake build failed exit={lake_exit}")
+                    tail = " ".join(lake_out.strip().splitlines()[-8:])[:800]
+                    extra = f": {tail}" if tail else ""
+                    errors.append(f"lake build failed exit={lake_exit}{extra}")
 
     changed = _changed_files(world, overlay_root) if overlay_root != world else []
     if overlay_root == world:

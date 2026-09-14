@@ -10,6 +10,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from rc.cmd_gate import _docker_run_ref
 from tests.support import (
     FakeCore,
     LEAN_NOTATION,
@@ -84,6 +85,23 @@ class TestT3Gates(unittest.TestCase):
         self.assertTrue(h1[0].startswith("gate_hash=sha256:"))
         digest = h1[0].split("=", 1)[1]
         self.assertEqual(len(digest), len("sha256:") + 64)
+
+    def test_github_actions_env_does_not_require_certificate(self):
+        self.lean.write_text(LEAN_SORRY, encoding="utf-8")
+        env = dict(self.env)
+        env["GITHUB_ACTIONS"] = "true"
+        code, _out, err = run_rc(["gate", "P-20260914-fx01"], env, self.world)
+        self.assertEqual(code, 1)
+        self.assertIn("sorry", err.lower())
+        self.assertNotIn("CERTIFICATE.json", err)
+
+    def test_docker_run_ref_uses_image_id_not_name_at_digest(self):
+        image_id = "sha256:" + ("c" * 64)
+        self.assertEqual(
+            _docker_run_ref(f"magrathea-gate:lean-4.33.0@{image_id}"),
+            image_id,
+        )
+        self.assertEqual(_docker_run_ref("magrathea-gate:lean-4.33.0"), "magrathea-gate:lean-4.33.0")
 
 
 @unittest.skipUnless(_docker(), "docker daemon not running on this host")
