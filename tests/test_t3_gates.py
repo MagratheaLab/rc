@@ -102,6 +102,8 @@ class TestT3Gates(unittest.TestCase):
             image_id,
         )
         self.assertEqual(_docker_run_ref("magrathea-gate:lean-4.33.0"), "magrathea-gate:lean-4.33.0")
+        pinned = "ghcr.io/magrathealab/gate:lean-4.33.0@sha256:" + ("b" * 64)
+        self.assertEqual(_docker_run_ref(pinned), pinned)
 
     def test_docker_copy_does_not_preserve_ownership(self):
         src = Path(__file__).resolve().parents[1] / "rc" / "cmd_gate.py"

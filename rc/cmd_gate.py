@@ -69,10 +69,13 @@ def _docker_available() -> bool:
 
 
 def _docker_run_ref(image: str) -> str:
-    """Local `name@sha256:<image-id>` is not a registry digest. Run by id or tag."""
+    """Registry pins: name@sha256:manifest. Local GHA ids: run by image id."""
     if "@" not in image:
         return image
     name, digest = image.split("@", 1)
+    host = name.split("/")[0].split(":")[0]
+    if "." in host or host == "localhost":
+        return image
     if digest.startswith("sha256:"):
         return digest
     return name or image
