@@ -1,7 +1,7 @@
 {
   "image": "ghcr.io/magrathealab/gate",
   "tag": "lean-4.33.0",
-  "digest": "",
+  "digest": "sha256:6bbe4b6d2c349f71f2ee715c6b5c1adefdad9415aedb5f0841867d0fe2dc3466",
   "lean": "leanprover/lean4:v4.33.0",
   "elan": {
     "version": "v4.2.4",
