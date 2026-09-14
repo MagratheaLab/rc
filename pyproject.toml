@@ -1,7 +1,7 @@
 [project]
 name = "rc-cli"
-version = "0.0.0"
-description = "Magrathea CLI stub"
+version = "0.1.4"
+description = "Magrathea CLI (rc) — GitHub packets, sparse work, Lean gate"
 requires-python = ">=3.11"
 dependencies = []
 

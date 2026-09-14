@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+.rc/
+.rc-work/
+.pytest_cache/
+*.olean
+*.ilean
+.lake/
