@@ -103,6 +103,12 @@ class TestT3Gates(unittest.TestCase):
         )
         self.assertEqual(_docker_run_ref("magrathea-gate:lean-4.33.0"), "magrathea-gate:lean-4.33.0")
 
+    def test_docker_copy_does_not_use_cp_a(self):
+        src = Path(__file__).resolve().parents[1] / "rc" / "cmd_gate.py"
+        text = src.read_text(encoding="utf-8")
+        self.assertNotIn("cp -a ", text)
+        self.assertIn("cp -R --no-preserve=ownership", text)
+
 
 @unittest.skipUnless(_docker(), "docker daemon not running on this host")
 class TestDockerLake(unittest.TestCase):

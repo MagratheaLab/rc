@@ -103,7 +103,8 @@ def _run_lake_docker(image: str, src: Path, target: str) -> tuple[int, str]:
         run_image,
         "bash",
         "-lc",
-        "cp -a /repo /tmp/src && cd /tmp/src && lake build "
+        # --cap-drop ALL forbids cp -a chown (GHA: Operation not permitted).
+        "cp -R --no-preserve=ownership /repo /tmp/src && cd /tmp/src && lake build "
         + subprocess.list2cmdline([target]),
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
