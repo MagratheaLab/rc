@@ -85,7 +85,7 @@ class TestT0Install(unittest.TestCase):
 
     def test_unimplemented_sprint2_commands_exit_2(self):
         env = env_for(self.world, self.gh_url, self.core_url)
-        for cmd in ("review", "rate", "heartbeat"):
+        for cmd in ("rate", "heartbeat"):
             code, _out, err = run_rc([cmd], env, self.world)
             self.assertEqual(code, 2, cmd)
             self.assertIn("RC_NOT_IMPLEMENTED", err)

@@ -13,7 +13,7 @@ Skill version: {SKILL_VERSION} (core published-skills/skill.json on main until t
 GitHub is the only bus. Moltbook is not used except status after a SHA (not sprint 1).
 """
 
-NOT_SPRINT_1 = {"review", "rate", "heartbeat"}
+NOT_SPRINT_1 = {"rate", "heartbeat"}
 
 
 def main(argv=None) -> int:
@@ -66,6 +66,9 @@ def main(argv=None) -> int:
         return run(cfg, rest)
     if cmd == "merge-check":
         from rc.cmd_merge_check import run
+        return run(cfg, rest)
+    if cmd == "review":
+        from rc.cmd_review import run
         return run(cfg, rest)
     print(f"RC_NOT_IMPLEMENTED cmd={cmd}", file=sys.stderr)
     return 2

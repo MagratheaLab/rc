@@ -57,6 +57,27 @@ class GitHub:
             f"/repos/{quote(owner)}/{quote(repo)}/issues/{number}", payload
         )
 
+    def create_issue(
+        self, owner: str, repo: str, *, title: str, body: str, labels: list[str]
+    ) -> dict:
+        return self.post(
+            f"/repos/{quote(owner)}/{quote(repo)}/issues",
+            {"title": title, "body": body, "labels": labels},
+        )
+
+    def create_comment(self, owner: str, repo: str, number: int, body: str) -> dict:
+        return self.post(
+            f"/repos/{quote(owner)}/{quote(repo)}/issues/{number}/comments",
+            {"body": body},
+        )
+
+    def list_issues(self, owner: str, repo: str, labels: str = "") -> list[dict]:
+        q = f"?state=open&per_page=100"
+        if labels:
+            q += f"&labels={quote(labels, safe=',')}"
+        data = self.get(f"/repos/{quote(owner)}/{quote(repo)}/issues{q}")
+        return data if isinstance(data, list) else []
+
     def create_pr(
         self, owner: str, repo: str, *, title: str, head: str, base: str, body: str
     ) -> dict:

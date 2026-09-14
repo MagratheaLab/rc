@@ -173,11 +173,11 @@ class FakeGitHub(BaseHTTPRequestHandler):
             return self._json(200, pr)
         if path.endswith("/issues") or "/issues?" in self.path:
             qs = parse_qs(parsed.query)
-            labels = qs.get("labels", [""])[0].split(",")
+            want = [x for x in qs.get("labels", [""])[0].split(",") if x]
             items = []
             for issue in self.store["issues"]:
                 names = {l["name"] for l in issue["labels"]}
-                if "packet" in labels and "packet" not in names:
+                if want and not set(want).issubset(names):
                     continue
                 if issue.get("state") != "open":
                     continue
@@ -220,6 +220,26 @@ class FakeGitHub(BaseHTTPRequestHandler):
         if "/merge" in self.path:
             return self._json(403, {"message": "merge-check must not merge"})
         payload = self._read()
+        if self.path.rstrip("/").endswith("/comments"):
+            number = int(self.path.split("/issues/")[1].split("/")[0])
+            comments = self.store.setdefault("comments", {}).setdefault(number, [])
+            comments.append({"body": payload.get("body") or ""})
+            return self._json(201, comments[-1])
+        if self.path.endswith("/issues"):
+            issues = self.store.setdefault("issues", [])
+            number = max([i.get("number") or 0 for i in issues], default=0) + 1
+            labels = [{"name": n} for n in (payload.get("labels") or [])]
+            issue = {
+                "number": number,
+                "title": payload.get("title") or "",
+                "body": payload.get("body") or "",
+                "state": "open",
+                "labels": labels,
+                "assignees": [],
+                "assignee": None,
+            }
+            issues.append(issue)
+            return self._json(201, issue)
         if self.path.endswith("/pulls"):
             pr = {"number": 1, "html_url": "https://github.com/example/world/pull/1", **payload}
             self.store.setdefault("prs", []).append(pr)
