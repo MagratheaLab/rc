@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "gate/**"
+      - "gate/Dockerfile"
       - ".github/workflows/publish-gate.yml"
   workflow_dispatch:
 
