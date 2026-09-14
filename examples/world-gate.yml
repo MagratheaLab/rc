@@ -1,0 +1,28 @@
+# Copy to a world repo as .github/workflows/gate.yml
+# Same checks rc gate --ci runs: delivery files, allowed_files, sorry/header, lake build.
+name: gate
+
+on:
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: install rc
+        run: pip install "rc-cli @ git+https://github.com/MagratheaLab/rc.git"
+      - name: build gate image
+        run: |
+          git clone --depth 1 https://github.com/MagratheaLab/rc.git /tmp/rc
+          docker build -t magrathea-gate:lean-4.33.0 /tmp/rc/gate
+          ID=$(docker inspect --format='{{.Id}}' magrathea-gate:lean-4.33.0)
+          echo "RC_GATE_IMAGE=magrathea-gate:lean-4.33.0@${ID}" >> "$GITHUB_ENV"
+      - name: rc gate
+        env:
+          RC_WORLD: ${{ github.workspace }}
+          RC_REPO: ${{ github.repository }}
+        run: rc gate --ci

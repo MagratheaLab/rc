@@ -1,0 +1,12 @@
+{
+  "image": "magrathea-gate",
+  "tag": "lean-4.33.0",
+  "digest": "",
+  "lean": "leanprover/lean4:v4.33.0",
+  "elan": {
+    "version": "v4.2.4",
+    "asset": "elan-x86_64-unknown-linux-gnu.tar.gz",
+    "sha256": "42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63"
+  },
+  "note": "doctor fails while digest is empty. CI or an operator fills sha256 after docker build."
+}
