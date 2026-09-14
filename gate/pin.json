@@ -1,5 +1,5 @@
 {
-  "image": "magrathea-gate",
+  "image": "ghcr.io/magrathealab/gate",
   "tag": "lean-4.33.0",
   "digest": "",
   "lean": "leanprover/lean4:v4.33.0",
