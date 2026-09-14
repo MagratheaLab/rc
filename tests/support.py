@@ -160,6 +160,17 @@ class FakeGitHub(BaseHTTPRequestHandler):
         path = parsed.path
         if path == "/user":
             return self._json(200, {"login": self.store.get("login", "tester")})
+        if "/check-runs" in path:
+            return self._json(200, {"check_runs": self.store.get("check_runs") or []})
+        if "/pulls/" in path and path.endswith("/files"):
+            number = int(path.split("/pulls/")[1].split("/")[0])
+            return self._json(200, self.store.get("pr_files", {}).get(number, []))
+        if "/pulls/" in path:
+            number = int(path.rstrip("/").split("/")[-1])
+            pr = (self.store.get("pulls") or {}).get(number)
+            if not pr:
+                return self._json(404, {"message": "not found"})
+            return self._json(200, pr)
         if path.endswith("/issues") or "/issues?" in self.path:
             qs = parse_qs(parsed.query)
             labels = qs.get("labels", [""])[0].split(",")
@@ -200,8 +211,14 @@ class FakeGitHub(BaseHTTPRequestHandler):
             return self._json(200, issue)
         return self._json(404, {"message": "not found"})
 
+    def do_PUT(self):
+        self.store.setdefault("urls", []).append("PUT " + self.path)
+        return self._json(403, {"message": "merge-check must not merge"})
+
     def do_POST(self):
         self.store.setdefault("urls", []).append("POST " + self.path)
+        if "/merge" in self.path:
+            return self._json(403, {"message": "merge-check must not merge"})
         payload = self._read()
         if self.path.endswith("/pulls"):
             pr = {"number": 1, "html_url": "https://github.com/example/world/pull/1", **payload}
