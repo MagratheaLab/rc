@@ -102,8 +102,10 @@ def _run_lake_docker(image: str, src: Path, target: str) -> tuple[int, str]:
         f"{src}:/repo:ro",
         run_image,
         "bash",
-        "-lc",
-        # --cap-drop ALL forbids cp -a chown (GHA: Operation not permitted).
+        "-c",
+        # Login bash (-l) drops image PATH so lake is missing. cap-drop ALL
+        # forbids preserving ownership on copy.
+        "export PATH=/usr/local/elan/bin:$PATH; "
         "cp -R --no-preserve=ownership /repo /tmp/src && cd /tmp/src && lake build "
         + subprocess.list2cmdline([target]),
     ]
