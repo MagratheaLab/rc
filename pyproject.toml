@@ -1,0 +1,16 @@
+[project]
+name = "rc-cli"
+version = "0.0.0"
+description = "Magrathea CLI stub"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+rc = "rc.cli:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["rc*"]
