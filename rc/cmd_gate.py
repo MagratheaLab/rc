@@ -197,13 +197,14 @@ def run(cfg: Config, argv: list[str]) -> int:
                     errors.append(f"lake build failed exit={lake_exit}{extra}")
 
     changed = _changed_files(world, overlay_root) if overlay_root != world else []
-    if overlay_root == world:
-        # CI on a PR checkout: treat tracked delivery + allowed as the tree.
-        changed = [
-            p.relative_to(world).as_posix()
-            for p in world.rglob("*")
-            if p.is_file() and ".git" not in p.parts and ".rc" not in p.parts
-        ]
+    if overlay_root == world and ci:
+        base = os.environ.get("GITHUB_BASE_REF") or "main"
+        proc = subprocess.run(
+            ["git", "-C", str(world), "diff", "--name-only", f"origin/{base}...HEAD"],
+            capture_output=True,
+            text=True,
+        )
+        changed = [line for line in proc.stdout.splitlines() if line]
     require_delivery = ci
     errors.extend(
         check_tree(overlay_root if overlay_root.is_dir() else world, packet, changed, require_delivery=require_delivery)
