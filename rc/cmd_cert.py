@@ -71,6 +71,7 @@ def run(cfg: Config, argv: list[str]) -> int:
         "allowed_files": packet.allowed_files,
         "gate": {
             "local": "pass",
+            "lake": stamp.get("lake_mode") or "docker",
             "commands": stamp.get("commands") or [],
         },
         "proof_kind": proof_kind,

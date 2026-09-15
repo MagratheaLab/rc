@@ -157,7 +157,10 @@ def run(cfg: Config, argv: list[str]) -> int:
     lake_exit = None
     lake_out = ""
     lake_ran = False
-    if not errors and packet.claim_type == "lemma":
+    lake_mode = cfg.lake_mode if cfg.lake_mode in {"docker", "ci"} else "docker"
+    if not errors and packet.claim_type == "lemma" and lake_mode == "ci":
+        print("lake=ci (canonical judge is world GitHub Action)")
+    elif not errors and packet.claim_type == "lemma":
         if not cfg.gate_image:
             errors.append("gate image unpinned")
         elif not _docker_available():
@@ -234,6 +237,7 @@ def run(cfg: Config, argv: list[str]) -> int:
         "errors": errors,
         "commands": payload["commands"],
         "lake_exit": lake_exit,
+        "lake_mode": lake_mode,
     }
     stamp_path = world / ".rc" / f"gate-{packet.packet}.json"
     stamp_path.parent.mkdir(parents=True, exist_ok=True)

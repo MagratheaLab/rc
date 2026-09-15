@@ -30,6 +30,7 @@ class Config:
     skill_version: str
     lean: str
     world: Path | None
+    lake_mode: str
 
 
 def _walk_toml() -> dict:
@@ -87,6 +88,7 @@ def load() -> Config:
         model_id=env.get("RC_MODEL_ID") or file_cfg.get("model_id") or "",
         skill_version=SKILL_VERSION,
         lean=env.get("RC_LEAN") or file_cfg.get("lean") or LEAN_PIN,
+        lake_mode=(env.get("RC_LAKE_MODE") or file_cfg.get("lake_mode") or "docker").lower(),
         world=Path(world).resolve() if world else None,
     )
 

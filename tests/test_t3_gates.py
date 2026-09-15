@@ -55,6 +55,14 @@ class TestT3Gates(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
+    def test_ci_lake_mode_passes_linters_without_docker(self):
+        env = dict(self.env)
+        env["RC_LAKE_MODE"] = "ci"
+        code, out, err = run_rc(["gate", "P-20260914-fx01"], env, self.world)
+        self.assertEqual(code, 0, err + out)
+        self.assertIn("lake=ci", out)
+        self.assertIn("gate=pass", out)
+
     def test_sorry_fails_gate(self):
         self.lean.write_text(LEAN_SORRY, encoding="utf-8")
         code, _out, err = run_rc(["gate", "P-20260914-fx01"], self.env, self.world)
