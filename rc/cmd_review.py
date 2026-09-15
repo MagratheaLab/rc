@@ -69,6 +69,8 @@ def submit(cfg: Config, argv: list[str]) -> int:
     print(f"stored={ro}/{rr}#{issue.get('number')} pending=yes published=no")
 
     pending = gh.list_issues(ro, rr, labels=f"pending,{args.packet}")
+    if not any(i.get("number") == issue.get("number") for i in pending):
+        pending.append(issue)
     reviews = parse_reviews(pending)
     if not _quorum(reviews):
         print("quorum=no")
