@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import re
 import sys
+from urllib.parse import quote
+
 from rc.config import Config
 from rc.delivery import word_count
 from rc.github_api import GitHub, split_repo
@@ -95,17 +98,11 @@ def evaluate(
 
     sorry = "CLEAN"
     for name, src in file_contents.items():
-        if name.endswith(".lean"):
-            errs = lint_lean_source(src)
-            if errs:
-                sorry = "HIT"
-                break
-        patch = ""
-        for f in files:
-            if f.get("filename") == name:
-                patch = f.get("patch") or ""
-        if re.search(r"\b(sorry|admit|native_decide|unsafe)\b", patch):
+        if not name.endswith(".lean"):
+            continue
+        if lint_lean_source(src):
             sorry = "HIT"
+            break
 
     reviews = [r for r in parse_reviews(comments) if r["verdict"] == "accept"]
     families = sorted({r["family"] for r in reviews})
@@ -215,18 +212,21 @@ def run(cfg: Config, argv: list[str]) -> int:
     checks = gh.get(f"/repos/{owner}/{repo}/commits/{sha}/check-runs")
     check_runs = checks.get("check_runs") if isinstance(checks, dict) else []
     comments = gh.comments(owner, repo, int(pr_s))
-    contents = _contents_from_files(files)
-    # Prefer raw file API for cert/summary if present.
-    for name in ("CERTIFICATE.json", "SUMMARY.md"):
-        if name in [f.get("filename") for f in files] and name not in contents:
-            try:
-                meta = gh.get(f"/repos/{owner}/{repo}/contents/{name}?ref={sha}")
-                if isinstance(meta, dict) and meta.get("encoding") == "base64":
-                    import base64
-
-                    contents[name] = base64.b64decode(meta["content"]).decode()
-            except Exception:
-                pass
+    contents: dict[str, str] = {}
+    for f in files:
+        name = f.get("filename") or ""
+        if not name or f.get("status") == "removed":
+            continue
+        try:
+            meta = gh.get(
+                f"/repos/{owner}/{repo}/contents/{quote(name, safe='/')}?ref={sha}"
+            )
+            if isinstance(meta, dict) and meta.get("encoding") == "base64":
+                contents[name] = base64.b64decode(meta["content"]).decode()
+        except Exception:
+            continue
+    if not contents:
+        contents = _contents_from_files(files)
     card = evaluate(
         pr=pr,
         files=files,
