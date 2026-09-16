@@ -162,6 +162,10 @@ class FakeGitHub(BaseHTTPRequestHandler):
             return self._json(200, {"login": self.store.get("login", "tester")})
         if "/check-runs" in path:
             return self._json(200, {"check_runs": self.store.get("check_runs") or []})
+        if path.endswith("/pulls"):
+            return self._json(
+                200, self.store.get("open_prs") or self.store.get("prs") or []
+            )
         if "/pulls/" in path and path.endswith("/files"):
             number = int(path.split("/pulls/")[1].split("/")[0])
             return self._json(200, self.store.get("pr_files", {}).get(number, []))

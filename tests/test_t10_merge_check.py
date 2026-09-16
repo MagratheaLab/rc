@@ -9,7 +9,10 @@ from rc.cmd_merge_check import evaluate, render
 
 
 def _pr():
-    return {"number": 7, "head": {"sha": "abc123def4567890"}}
+    return {
+        "number": 7,
+        "head": {"sha": "abc123def4567890", "ref": "packet/P-20260914-fx01"},
+    }
 
 
 def _ok_files():
@@ -61,6 +64,7 @@ class TestT10MergeCheck(unittest.TestCase):
         self.assertEqual(card["VERDICT"], "GO")
         self.assertEqual(card["GATE"], "PASS")
         self.assertEqual(card["ADVERSARY"], "PASS")
+        self.assertEqual(card["BRANCH"], "PASS")
         self.assertEqual(card["SORRY_OR_REWRITE"], "CLEAN")
         text = render(card)
         self.assertIn("MERGE_CHECK pr=7", text)
@@ -91,6 +95,20 @@ class TestT10MergeCheck(unittest.TestCase):
         )
         self.assertEqual(card["VERDICT"], "NO-GO")
         self.assertIn("SUMMARY", card["BLOCKERS"])
+
+    def test_non_packet_branch_is_nogo(self):
+        pr = _pr()
+        pr["head"]["ref"] = "feature/oops"
+        card = evaluate(
+            pr=pr,
+            files=_ok_files(),
+            check_runs=_gate_ok(),
+            comments=_reviews(True),
+            file_contents=_ok_contents(),
+        )
+        self.assertEqual(card["VERDICT"], "NO-GO")
+        self.assertEqual(card["BRANCH"], "FAIL")
+        self.assertIn("BRANCH", card["BLOCKERS"])
 
     def test_sorry_in_diff_is_nogo(self):
         contents = _ok_contents()

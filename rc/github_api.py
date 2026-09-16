@@ -86,6 +86,18 @@ class GitHub:
             {"title": title, "head": head, "base": base, "body": body},
         )
 
+    def list_open_prs(self, owner: str, repo: str) -> list[dict]:
+        data = self.get(
+            f"/repos/{quote(owner)}/{quote(repo)}/pulls?state=open&per_page=100"
+        )
+        return data if isinstance(data, list) else []
+
+    def pr_files(self, owner: str, repo: str, number: int) -> list[dict]:
+        data = self.get(
+            f"/repos/{quote(owner)}/{quote(repo)}/pulls/{int(number)}/files?per_page=100"
+        )
+        return data if isinstance(data, list) else []
+
 
 def split_repo(repo: str) -> tuple[str, str]:
     repo = repo.strip().rstrip("/")

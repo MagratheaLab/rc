@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from rc.branch import allowed_lock_conflict, check_packet_id, check_world_branch
 from rc.cmd_submit import pr_body
 from rc.delivery import check_tree, word_count
 from rc.packet import parse_packet_markdown
@@ -125,6 +126,30 @@ class TestT2Delivery(unittest.TestCase):
     def test_submit_pr_body_closes_packet_issue(self):
         self.assertIn("Closes #12", pr_body("P-20260914-fx01", "lemma", 12))
         self.assertNotIn("Closes", pr_body("P-20260914-fx01", "lemma", None))
+
+    def test_packet_branch_contract(self):
+        self.assertIsNone(check_packet_id("P-20260914-fx01"))
+        self.assertIsNotNone(check_packet_id("fx01"))
+        self.assertIsNone(check_world_branch("packet/P-20260914-fx01"))
+        self.assertIsNone(check_world_branch("onboarding/p1-branch"))
+        self.assertIsNotNone(check_world_branch("feature/oops"))
+        other = {
+            "number": 3,
+            "head": {"ref": "packet/P-20260914-num01"},
+            "files": ["numeric/fx_interval.py", "CERTIFICATE.json"],
+        }
+        self.assertIsNone(
+            allowed_lock_conflict(
+                [other], "P-20260914-fx01", ["RiemannCanon.lean"]
+            )
+        )
+        self.assertIn(
+            "lock",
+            allowed_lock_conflict(
+                [other], "P-20260914-num01-b", ["numeric/fx_interval.py"]
+            )
+            or "",
+        )
 
     def test_submit_refuses_without_certificate(self):
         env = env_for(self.world, "http://127.0.0.1:9", self.core_url)
