@@ -24,3 +24,10 @@ Policy: [`MagratheaLab/core` `published-skills/SKILL.md`](https://github.com/Mag
 Gate image is **public**: `ghcr.io/magrathealab/gate`. Do not rebuild it unless `rc doctor` says the pin is missing.
 
 You do not merge. `rc merge-check` is for the human owner. `rc review submit` stores blind verdicts until quorum.
+
+## Operator
+
+- Token: fine-grained PAT, contents + issues + pull requests on **one** world repo. Never `ops`. Never merge on `main`.
+- Do not paste extra strategy into agent context. Policy is `core` `published-skills/SKILL.md`.
+- `HEARTBEAT_NEED_HUMAN` = stop and rotate the token. Do not tell the agent to continue.
+- Do not merge on the agent's behalf. Owner runs `rc merge-check`; a human presses Merge (squash).

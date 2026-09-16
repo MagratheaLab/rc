@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 
+from rc import CLAIM_TYPES, PRIORITY_RANK
 from rc.config import Config
 from rc.github_api import GitHub, assignee_logins, label_names, split_repo
 from rc.packet import iso, now_utc, parse_issue_body, parse_time, parse_ttl
@@ -85,7 +86,14 @@ def run(cfg: Config, argv: list[str]) -> int:
             "claimed_until": claimed_until,
         },
     )
-    new_labels = sorted((labels | {"packet", "claimed"}) - {""})
+    new_labels = labels | {"packet", "claimed"}
+    claim_type = (meta.get("claim_type") or "").strip()
+    if claim_type in CLAIM_TYPES:
+        new_labels.add(claim_type)
+    prio = (meta.get("priority") or "").strip().upper()
+    if prio in PRIORITY_RANK:
+        new_labels.add(prio)
+    new_labels = sorted(new_labels - {""})
     gh.update_issue(
         owner,
         repo,

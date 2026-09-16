@@ -29,10 +29,15 @@ def _issue_packet(issue: dict) -> dict:
     return meta
 
 
+def _is_open_packet(issue: dict) -> bool:
+    names = label_names(issue)
+    return "packet" in names and "question" not in names
+
+
 def select_issue(issues: list[dict], comments_by_number: dict[int, list[dict]], agent_id: str) -> dict | None:
     assigned = []
     for issue in issues:
-        if "packet" not in label_names(issue):
+        if not _is_open_packet(issue):
             continue
         for comment in comments_by_number.get(issue["number"], []):
             match = HERMES_ASSIGN.search(comment.get("body") or "")
@@ -40,7 +45,9 @@ def select_issue(issues: list[dict], comments_by_number: dict[int, list[dict]], 
                 assigned.append(issue)
                 break
     pool = assigned or [
-        i for i in issues if "packet" in label_names(i) and "claimed" not in label_names(i)
+        i
+        for i in issues
+        if _is_open_packet(i) and "claimed" not in label_names(i)
     ]
     if not pool:
         # still offer a claimed packet? next should pick open unclaimed, or assigned.

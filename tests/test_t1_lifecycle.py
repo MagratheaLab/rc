@@ -60,6 +60,27 @@ class TestT1Lifecycle(unittest.TestCase):
         self.assertEqual(iss["assignees"][0]["login"], "tester")
         self.assertIn("claimed_until:", iss["body"])
         self.assertIn("label=claimed", out)
+        self.assertIn("lemma", names)
+        self.assertIn("P2", names)
+
+    def test_next_ignores_question_issues(self):
+        from rc.cmd_next import select_issue
+
+        q = issue(
+            title="Q: why this lemma",
+            body="not a packet",
+            labels=[{"name": "question"}],
+        )
+        mixed = issue(
+            number=2,
+            title="P-20260914-fx01 but also question",
+            labels=[{"name": "packet"}, {"name": "question"}],
+        )
+        packet = issue(number=3, title="P-20260914-fx01 fixture Lean island")
+        self.assertIsNone(select_issue([q], {}, ""))
+        self.assertIsNone(select_issue([mixed], {}, ""))
+        chosen = select_issue([q, mixed, packet], {}, "")
+        self.assertEqual(chosen["number"], 3)
 
     def test_second_claim_fails(self):
         body = (

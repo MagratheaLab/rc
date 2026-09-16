@@ -268,6 +268,8 @@ def issue(body: str = ISSUE_BODY, **extra) -> dict:
         "assignee": None,
     }
     data.update(extra)
+    if extra.get("number") is not None:
+        data["number"] = extra["number"]
     return data
 
 

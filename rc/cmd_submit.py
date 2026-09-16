@@ -6,9 +6,16 @@ from pathlib import Path
 
 from rc.config import Config
 from rc.delivery import check_tree
-from rc.github_api import GitHub, split_repo
+from rc.github_api import GitHub, label_names, split_repo
 from rc.packet import load_packet_file
 from rc.state import find_world, work_dir
+
+
+def pr_body(packet_id: str, claim_type: str, issue_number: int | None) -> str:
+    lines = [f"Packet {packet_id}", f"claim_type: {claim_type}"]
+    if issue_number:
+        lines.append(f"Closes #{issue_number}")
+    return "\n".join(lines) + "\n"
 
 
 def _git(world: Path, *args: str) -> subprocess.CompletedProcess:
@@ -93,14 +100,28 @@ def run(cfg: Config, argv: list[str]) -> int:
         return 1
     owner, repo = split_repo(cfg.repo)
     gh = GitHub(cfg.github_api, cfg.token)
+    issue_number = None
+    issue = None
+    try:
+        from rc.cmd_claim import find_packet_issue
+
+        issue = find_packet_issue(gh, owner, repo, packet.packet)
+        issue_number = int(issue["number"])
+    except RuntimeError:
+        pass
     pr = gh.create_pr(
         owner,
         repo,
         title=f"{packet.packet}",
         head=branch,
         base="main",
-        body=f"Packet {packet.packet}\nclaim_type: {packet.claim_type}\n",
+        body=pr_body(packet.packet, packet.claim_type, issue_number),
     )
+    if issue is not None and issue_number is not None:
+        labels = sorted(label_names(issue) | {"packet", "in-review"})
+        gh.update_issue(owner, repo, issue_number, {"labels": labels})
     print(f"pr={pr.get('html_url') or pr.get('number')}")
+    if issue_number:
+        print(f"closes=#{issue_number}")
     print("pushed_main=no")
     return 0
