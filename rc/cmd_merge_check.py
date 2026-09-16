@@ -8,6 +8,7 @@ import re
 import sys
 from urllib.parse import quote
 
+from rc.branch import PACKET_BRANCH_RE
 from rc.config import Config
 from rc.delivery import word_count
 from rc.github_api import GitHub, split_repo
@@ -62,6 +63,8 @@ def evaluate(
     file_contents: dict[str, str],
 ) -> dict[str, str]:
     sha = (pr.get("head") or {}).get("sha") or ""
+    ref = (pr.get("head") or {}).get("ref") or ""
+    branch_st = "PASS" if PACKET_BRANCH_RE.match(ref) else "FAIL"
     names = [f.get("filename") or "" for f in files]
     cert_raw = file_contents.get("CERTIFICATE.json")
     summary_raw = file_contents.get("SUMMARY.md")
@@ -133,6 +136,8 @@ def evaluate(
         blockers.append("SORRY_OR_REWRITE")
     if allowed_st != "PASS":
         blockers.append("ALLOWED_FILES")
+    if branch_st != "PASS":
+        blockers.append("BRANCH")
 
     verdict = "GO" if not blockers else "NO-GO"
     return {
@@ -146,6 +151,7 @@ def evaluate(
         "STATEMENT_HASH": stmt_st,
         "SORRY_OR_REWRITE": sorry,
         "ALLOWED_FILES": allowed_st,
+        "BRANCH": branch_st,
         "VERDICT": verdict,
         "BLOCKERS": ",".join(blockers) or "-",
     }
@@ -162,6 +168,7 @@ def render(card: dict[str, str]) -> str:
         _line("STATEMENT_HASH", card["STATEMENT_HASH"]),
         _line("SORRY_OR_REWRITE", card["SORRY_OR_REWRITE"]),
         _line("ALLOWED_FILES", card["ALLOWED_FILES"]),
+        _line("BRANCH", card["BRANCH"]),
         _line("VERDICT", card["VERDICT"]),
         _line("BLOCKERS", card["BLOCKERS"]),
     ]

@@ -4,6 +4,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from rc.branch import allowed_lock_conflict, check_packet_id, packet_branch
 from rc.config import Config
 from rc.delivery import check_tree
 from rc.github_api import GitHub, label_names, split_repo
@@ -34,6 +35,10 @@ def run(cfg: Config, argv: list[str]) -> int:
     if not packet_id:
         print("usage: rc submit P-...", file=sys.stderr)
         return 2
+    bad_id = check_packet_id(packet_id)
+    if bad_id:
+        print(f"SUBMIT_FAIL {bad_id}", file=sys.stderr)
+        return 1
     packet = load_packet_file(world, packet_id)
     work = work_dir(world, packet_id)
     overlay = work if work.is_dir() else world
@@ -52,7 +57,7 @@ def run(cfg: Config, argv: list[str]) -> int:
         return 1
 
     # Copy overlay files into world working tree (not via main).
-    branch = f"packet/{packet.packet}"
+    branch = packet_branch(packet.packet)
     changed = []
     for path in overlay.rglob("*"):
         if not path.is_file():
@@ -74,6 +79,28 @@ def run(cfg: Config, argv: list[str]) -> int:
     if not cfg.token or not cfg.repo:
         print("GH_TOKEN and RC_REPO required to open a PR", file=sys.stderr)
         return 1
+
+    owner, repo = split_repo(cfg.repo)
+    gh = GitHub(cfg.github_api, cfg.token)
+    open_prs = []
+    for item in gh.list_open_prs(owner, repo):
+        files = gh.pr_files(owner, repo, int(item.get("number") or 0))
+        open_prs.append(
+            {
+                "number": item.get("number"),
+                "head": item.get("head") or {},
+                "html_url": item.get("html_url"),
+                "files": [f.get("filename") or "" for f in files],
+            }
+        )
+    lock = allowed_lock_conflict(open_prs, packet.packet, list(packet.allowed_files))
+    if lock:
+        print(f"SUBMIT_FAIL {lock}", file=sys.stderr)
+        return 1
+    existing = next(
+        (p for p in open_prs if ((p.get("head") or {}).get("ref") or "") == branch),
+        None,
+    )
 
     _git(world, "checkout", "main")
     created = _git(world, "checkout", "-B", branch)
@@ -98,8 +125,6 @@ def run(cfg: Config, argv: list[str]) -> int:
     if push.returncode != 0:
         print(push.stderr, file=sys.stderr)
         return 1
-    owner, repo = split_repo(cfg.repo)
-    gh = GitHub(cfg.github_api, cfg.token)
     issue_number = None
     issue = None
     try:
@@ -109,14 +134,17 @@ def run(cfg: Config, argv: list[str]) -> int:
         issue_number = int(issue["number"])
     except RuntimeError:
         pass
-    pr = gh.create_pr(
-        owner,
-        repo,
-        title=f"{packet.packet}",
-        head=branch,
-        base="main",
-        body=pr_body(packet.packet, packet.claim_type, issue_number),
-    )
+    if existing:
+        pr = existing
+    else:
+        pr = gh.create_pr(
+            owner,
+            repo,
+            title=f"{packet.packet}",
+            head=branch,
+            base="main",
+            body=pr_body(packet.packet, packet.claim_type, issue_number),
+        )
     if issue is not None and issue_number is not None:
         labels = sorted(label_names(issue) | {"packet", "in-review"})
         gh.update_issue(owner, repo, issue_number, {"labels": labels})
