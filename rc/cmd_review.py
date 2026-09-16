@@ -68,7 +68,11 @@ def submit(cfg: Config, argv: list[str]) -> int:
     )
     print(f"stored={ro}/{rr}#{issue.get('number')} pending=yes published=no")
 
-    pending = gh.list_issues(ro, rr, labels=f"pending,{args.packet}")
+    pending = [
+        i
+        for i in gh.list_issues(ro, rr, labels="pending")
+        if args.packet in ((i.get("title") or "") + (i.get("body") or ""))
+    ]
     if not any(i.get("number") == issue.get("number") for i in pending):
         pending.append(issue)
     reviews = parse_reviews(pending)
