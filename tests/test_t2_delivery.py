@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from rc.cmd_submit import pr_body
 from rc.delivery import check_tree, word_count
 from rc.packet import parse_packet_markdown
 from tests.support import (
@@ -120,6 +121,10 @@ class TestT2Delivery(unittest.TestCase):
             self.world, self.packet, ["SECRET.md"], require_delivery=False
         )
         self.assertTrue(any("SECRET.md" in e for e in errors))
+
+    def test_submit_pr_body_closes_packet_issue(self):
+        self.assertIn("Closes #12", pr_body("P-20260914-fx01", "lemma", 12))
+        self.assertNotIn("Closes", pr_body("P-20260914-fx01", "lemma", None))
 
     def test_submit_refuses_without_certificate(self):
         env = env_for(self.world, "http://127.0.0.1:9", self.core_url)
