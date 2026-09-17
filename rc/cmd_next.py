@@ -9,7 +9,7 @@ from rc.github_api import GitHub, assignee_logins, label_names, split_repo
 from rc.packet import parse_issue_body
 
 HERMES_ASSIGN = re.compile(
-    r"HERMES_ASSIGN\s+agent=(?P<agent>\S+)(?:\s+family=(?P<family>\S+))?"
+    r"(?:DISPATCH_ASSIGN|HERMES_ASSIGN)\s+agent=(?P<agent>\S+)(?:\s+family=(?P<family>\S+))?"
 )
 
 
@@ -77,6 +77,7 @@ def run(cfg: Config, argv: list[str]) -> int:
     chosen = select_issue(issues, comments, cfg.agent_id)
     if not chosen:
         print("packet=none")
+        print("IDLE")
         return 0
     meta = _issue_packet(chosen)
     print(f"packet={meta['packet']}")

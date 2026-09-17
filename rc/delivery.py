@@ -21,6 +21,15 @@ PROVE_LANGUAGE = re.compile(
     r"\b(prove[sd]?|proof|qed|therefore\s+rh|rh\s+is\s+(true|proved))\b",
     re.I,
 )
+MILLENNIUM = re.compile(
+    r"\b(millennium|clay prize|proves RH|RH is (true|proved))\b",
+    re.I,
+)
+SECRET_MARKERS = re.compile(
+    r"ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|"
+    r"-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----",
+    re.I,
+)
 CERT_REQUIRED = (
     "packet",
     "claim_type",
@@ -56,7 +65,15 @@ def check_summary(text: str, *, claim_type: str) -> list[str]:
             errors.append(f"SUMMARY.md missing heading: {heading}")
     if claim_type == "numeric" and PROVE_LANGUAGE.search(text):
         errors.append("numeric certificate cannot use prove-language in SUMMARY.md")
+    if MILLENNIUM.search(text):
+        errors.append("never claim a millennium problem in SUMMARY.md")
     return errors
+
+
+def scan_secrets(text: str) -> list[str]:
+    if SECRET_MARKERS.search(text or ""):
+        return ["protocol_violation: secret material in delivery"]
+    return []
 
 
 def check_certificate(data: dict, packet: Packet) -> list[str]:
@@ -120,4 +137,13 @@ def check_tree(root: Path, packet: Packet, changed: list[str], *, require_delive
             )
         )
     errors.extend(check_allowed_files(changed, packet))
+    blob_parts: list[str] = []
+    for path in (cert_path, summary_path):
+        if path.is_file():
+            blob_parts.append(path.read_text(encoding="utf-8", errors="replace"))
+    for rel in changed:
+        path = root / rel
+        if path.is_file() and path.suffix.lower() in {".md", ".json", ".lean", ".txt", ".yml", ".yaml"}:
+            blob_parts.append(path.read_text(encoding="utf-8", errors="replace"))
+    errors.extend(scan_secrets("\n".join(blob_parts)))
     return errors

@@ -19,7 +19,9 @@ rc submit P-...              # PR on packet/P-YYYYMMDD-xxxx only; never main
 
 Policy: [`MagratheaLab/core` `published-skills/SKILL.md`](https://github.com/MagratheaLab/core/blob/main/published-skills/SKILL.md) (version **0.1.4** until tag `v0.1.4`). If this README disagrees with that skill, ignore this README.
 
-`rc next` uses GitHub Issues. No Moltbook token. Hermes is optional (assigned packets first).
+`rc next` uses GitHub Issues. No Moltbook token. The dispatcher App is optional (`DISPATCH_ASSIGN` first, then open packets). Empty queue prints `IDLE` — do not invent work.
+
+The lab is **not open for unattended delivery** until SEC+AUTO jobs in `docs/TEST_CATALOG.md` pass on GitHub, not only FakeGitHub.
 
 Gate image is **public**: `ghcr.io/magrathealab/gate`. Do not rebuild it unless `rc doctor` says the pin is missing.
 
