@@ -17,6 +17,11 @@ SUMMARY_HEADINGS = (
     "What would falsify this",
     "Claim type",
 )
+SUMMARY_CLAIM_TYPES = frozenset({"lemma", "numeric", "adversary", "blocked"})
+SUMMARY_PLACEHOLDER = re.compile(
+    r"\(describe|\(identifier|\(header rewrite|\btodo\b|\blorem\b",
+    re.I,
+)
 PROVE_LANGUAGE = re.compile(
     r"\b(prove[sd]?|proof|qed|therefore\s+rh|rh\s+is\s+(true|proved))\b",
     re.I,
@@ -89,19 +94,52 @@ def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def check_summary(text: str, *, claim_type: str) -> list[str]:
+def split_summary_sections(text: str) -> dict[str, str] | None:
+    """Five headings in order, or None if the outline is wrong."""
+    lines = (text or "").splitlines()
+    found: list[tuple[int, str]] = []
+    for i, raw in enumerate(lines):
+        line = raw.strip()
+        if line in SUMMARY_HEADINGS:
+            found.append((i, line))
+    if [h for _, h in found] != list(SUMMARY_HEADINGS):
+        return None
+    sections: dict[str, str] = {}
+    for idx, (start, heading) in enumerate(found):
+        end = found[idx + 1][0] if idx + 1 < len(found) else len(lines)
+        body = "\n".join(lines[start + 1 : end]).strip()
+        sections[heading] = body
+    return sections
+
+
+def check_summary(
+    text: str, *, claim_type: str, packet_id: str | None = None
+) -> list[str]:
     errors: list[str] = []
     words = word_count(text)
     if words > SUMMARY_LIMIT:
         errors.append(f"SUMMARY.md has {words} words (max {SUMMARY_LIMIT})")
-    lower = text.lower()
-    for heading in SUMMARY_HEADINGS:
-        if heading.lower() not in lower:
-            errors.append(f"SUMMARY.md missing heading: {heading}")
+    if SUMMARY_PLACEHOLDER.search(text or ""):
+        errors.append("SUMMARY_TEMPLATE")
+    sections = split_summary_sections(text)
+    if sections is None:
+        errors.append("SUMMARY.md must have five headings in order: " + ", ".join(SUMMARY_HEADINGS))
+    else:
+        for heading, body in sections.items():
+            if not body or not re.search(r"[A-Za-z0-9]", body):
+                errors.append(f"SUMMARY_EMPTY:{heading}")
+        claim_body = (sections.get("Claim type") or "").strip().splitlines()
+        claimed = (claim_body[0] if claim_body else "").strip().lower()
+        if claimed and claimed not in SUMMARY_CLAIM_TYPES:
+            errors.append(f"SUMMARY.md claim type {claimed!r} not allowed")
+        elif claimed and claim_type and claimed != claim_type:
+            errors.append(f"SUMMARY.md claim type {claimed!r} != certificate {claim_type!r}")
     if claim_type == "numeric" and PROVE_LANGUAGE.search(text):
         errors.append("numeric certificate cannot use prove-language in SUMMARY.md")
     if MILLENNIUM.search(text):
         errors.append("never claim a millennium problem in SUMMARY.md")
+    if packet_id and packet_id not in (text or ""):
+        errors.append("SUMMARY.md must name the packet id")
     return errors
 
 
@@ -164,12 +202,18 @@ def check_tree(root: Path, packet: Packet, changed: list[str], *, require_delive
         claim = str(cert.get("claim_type") or packet.claim_type)
         if summary_path.is_file():
             errors.extend(
-                check_summary(summary_path.read_text(encoding="utf-8"), claim_type=claim)
+                check_summary(
+                    summary_path.read_text(encoding="utf-8"),
+                    claim_type=claim,
+                    packet_id=packet.packet,
+                )
             )
     elif summary_path.is_file():
         errors.extend(
             check_summary(
-                summary_path.read_text(encoding="utf-8"), claim_type=packet.claim_type
+                summary_path.read_text(encoding="utf-8"),
+                claim_type=packet.claim_type,
+                packet_id=packet.packet,
             )
         )
     errors.extend(check_allowed_files(changed, packet))
