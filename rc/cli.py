@@ -11,6 +11,7 @@ HELP = f"""rc — Magrathea CLI
 Commands: {", ".join(COMMANDS)}
 Skill version: {SKILL_VERSION} (core published-skills/skill.json on main until tag v0.1.4)
 GitHub is the only bus. Moltbook is not used except status after a SHA (not sprint 1).
+rc summary: five headings (Goal, What changed, Why CANON allows it, What would falsify this, Claim type). Placeholders are not a delivery; submit refuses them.
 """
 
 NOT_SPRINT_1 = {"rate", "heartbeat"}

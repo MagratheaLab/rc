@@ -9,7 +9,7 @@ from pathlib import Path
 
 from rc.branch import allowed_lock_conflict, check_packet_id, check_world_branch
 from rc.cmd_submit import pr_body
-from rc.delivery import check_tree, word_count
+from rc.delivery import check_summary, check_tree, word_count
 from rc.packet import parse_packet_markdown
 from tests.support import (
     FakeCore,
@@ -23,8 +23,26 @@ from tests.support import (
     write_receipts,
 )
 
+FORD_TEMPLATE = """Goal
+T8 join fixture — second GitHub user claims, gates, and submits a certificate for t8w/T8Join.lean.
+
+What changed
+(describe the smallest diff)
+
+Why CANON allows it
+(identifier + hash)
+
+What would falsify this
+(header rewrite, sorry, lake fail)
+
+Claim type
+lemma
+
+Fixture packet. Not RH. SUMMARY is an account, not a proof.
+"""
+
 SUMMARY_OK = """Goal
-Build RiemannCanon.one_add_one.
+P-20260914-fx01 Build RiemannCanon.one_add_one.
 
 What changed
 Filled the fixture proof with rfl.
@@ -109,10 +127,38 @@ class TestT2Delivery(unittest.TestCase):
         self.assertFalse(any("PR missing" in e for e in errors))
 
     def test_numeric_prove_language_rejected(self):
-        from rc.delivery import check_summary
-
         errors = check_summary("Goal\nThis proves RH.\n", claim_type="numeric")
         self.assertTrue(any("prove-language" in e for e in errors))
+
+    def test_summary_rejects_placeholders(self):
+        errors = check_summary(
+            FORD_TEMPLATE, claim_type="lemma", packet_id="P-20260924-t8w"
+        )
+        self.assertTrue(any("SUMMARY_TEMPLATE" in e for e in errors))
+
+    def test_summary_rejects_empty_section(self):
+        text = """Goal
+P-20260914-fx01 x.
+
+What changed
+
+Why CANON allows it
+fixture.
+
+What would falsify this
+sorry.
+
+Claim type
+lemma
+"""
+        errors = check_summary(text, claim_type="lemma", packet_id="P-20260914-fx01")
+        self.assertTrue(any("SUMMARY_EMPTY:What changed" in e for e in errors))
+
+    def test_summary_accepts_minimal_real_five_sections(self):
+        errors = check_summary(
+            SUMMARY_OK, claim_type="lemma", packet_id="P-20260914-fx01"
+        )
+        self.assertEqual(errors, [])
 
     def test_diff_outside_allowed_files_rejected(self):
         errors = check_tree(
@@ -147,6 +193,15 @@ class TestT2Delivery(unittest.TestCase):
             )
             or "",
         )
+
+    def test_submit_refuses_template_summary(self):
+        changed = write_receipts(
+            self.world, self.packet.packet, fx01_cert(), FORD_TEMPLATE
+        )
+        errors = check_tree(
+            self.world, self.packet, changed, require_delivery=True
+        )
+        self.assertTrue(any("SUMMARY_TEMPLATE" in e for e in errors))
 
     def test_submit_refuses_without_certificate(self):
         env = env_for(self.world, "http://127.0.0.1:9", self.core_url)

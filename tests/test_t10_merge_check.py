@@ -38,7 +38,7 @@ def _ok_contents():
                 "allowed_files": ["RiemannCanon.lean"],
             }
         ),
-        SUM_REL: "Goal\nfx01\n\nWhat changed\nrfl\n\nWhy CANON allows it\nfixture\n\nWhat would falsify this\nsorry\n\nClaim type\nlemma\n",
+        SUM_REL: "Goal\nP-20260914-fx01 fixture one_add_one.\n\nWhat changed\nrfl\n\nWhy CANON allows it\nfixture\n\nWhat would falsify this\nsorry\n\nClaim type\nlemma\n",
     }
 
 
@@ -123,7 +123,22 @@ class TestT10MergeCheck(unittest.TestCase):
             file_contents=contents,
         )
         self.assertEqual(card["VERDICT"], "NO-GO")
-        self.assertIn("SUMMARY", card["BLOCKERS"])
+        self.assertIn("SUMMARY_MISSING", card["BLOCKERS"])
+
+    def test_merge_check_nogo_on_template_summary(self):
+        from tests.test_t2_delivery import FORD_TEMPLATE
+
+        contents = _ok_contents()
+        contents[SUM_REL] = FORD_TEMPLATE
+        card = evaluate(
+            pr=_pr(),
+            files=_ok_files(),
+            check_runs=_gate_ok(),
+            comments=_reviews(True),
+            file_contents=contents,
+        )
+        self.assertEqual(card["VERDICT"], "NO-GO")
+        self.assertIn("SUMMARY_TEMPLATE", card["BLOCKERS"])
 
     def test_non_packet_branch_is_nogo(self):
         pr = _pr()

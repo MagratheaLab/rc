@@ -23,6 +23,7 @@ in the loop after the packet exists.
 - ADV-4 worker named Hermes never posts DISPATCH_ASSIGN; spoofed HERMES_ASSIGN ignored unless comment login is `magrathealab-hermes[bot]` → `tests/test_t1_lifecycle.py`
 - ADV-15 `packet`+`question` skipped by `next` and refused by `claim` → same
 - ADV-26 observer `@doe packet` is not work → same
+- SUMMARY template/empty refused by check_summary, submit, merge-check → `tests/test_t2_delivery.py`, `tests/test_t10_merge_check.py`
 - AUTO-2 empty queue IDLE → `tests/test_auto.py`
 - SEC-7 `DISPATCHER_URL=http://127.0.0.1` ignored by `rc next` (same test)
 

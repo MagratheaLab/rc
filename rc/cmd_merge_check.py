@@ -10,7 +10,13 @@ from urllib.parse import quote
 
 from rc.branch import PACKET_BRANCH_RE
 from rc.config import Config
-from rc.delivery import is_receipt_path, pick_receipt_text, receipt_files, word_count
+from rc.delivery import (
+    check_summary,
+    is_receipt_path,
+    pick_receipt_text,
+    receipt_files,
+    word_count,
+)
 from rc.github_api import GitHub, split_repo
 from rc.linter import lint_lean_source
 
@@ -88,9 +94,24 @@ def evaluate(
     if not summary_raw:
         summary_st = "MISSING"
         words = 0
+        summary_errs: list[str] = ["SUMMARY_MISSING"]
     else:
         words = word_count(summary_raw)
-        summary_st = "FAIL" if words > 500 else "PASS"
+        claim = ""
+        if cert_raw:
+            try:
+                claim = str((json.loads(cert_raw) or {}).get("claim_type") or "")
+            except json.JSONDecodeError:
+                claim = ""
+        summary_errs = check_summary(summary_raw, claim_type=claim, packet_id=packet)
+        if any(e == "SUMMARY_TEMPLATE" or e.startswith("SUMMARY_TEMPLATE") for e in summary_errs):
+            summary_st = "TEMPLATE"
+        elif any(e.startswith("SUMMARY_EMPTY") for e in summary_errs):
+            summary_st = "EMPTY"
+        elif summary_errs:
+            summary_st = "FAIL"
+        else:
+            summary_st = "PASS"
 
     extra_ok = {"CERTIFICATE.json", "SUMMARY.md"}
     if packet:
@@ -136,7 +157,13 @@ def evaluate(
         blockers.append("ADVERSARY")
     if cert_st != "PASS":
         blockers.append("CERTIFICATE")
-    if summary_st != "PASS":
+    if summary_st == "MISSING":
+        blockers.append("SUMMARY_MISSING")
+    elif summary_st == "TEMPLATE":
+        blockers.append("SUMMARY_TEMPLATE")
+    elif summary_st == "EMPTY":
+        blockers.append("SUMMARY_EMPTY")
+    elif summary_st != "PASS":
         blockers.append("SUMMARY")
     if stmt_st != "PASS":
         blockers.append("STATEMENT_HASH")

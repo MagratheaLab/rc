@@ -46,12 +46,17 @@ def run(cfg: Config, argv: list[str]) -> int:
         )
         print(f"wrote_template={path}")
     text = path.read_text(encoding="utf-8")
-    errors = check_summary(text, claim_type=packet.claim_type)
+    errors = check_summary(text, claim_type=packet.claim_type, packet_id=packet.packet)
     print(f"words={word_count(text)}")
     print(f"path={path}")
     if errors:
         for err in errors:
             print(f"SUMMARY_FAIL {err}", file=sys.stderr)
+        print(
+            "Fill the five headings (Goal, What changed, Why CANON allows it, "
+            "What would falsify this, Claim type). Template placeholders are not a delivery.",
+            file=sys.stderr,
+        )
         return 1
     print("SUMMARY_OK")
     return 0
