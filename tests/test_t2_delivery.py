@@ -154,6 +154,11 @@ lemma
         errors = check_summary(text, claim_type="lemma", packet_id="P-20260914-fx01")
         self.assertTrue(any("SUMMARY_EMPTY:What changed" in e for e in errors))
 
+    def test_summary_claim_type_first_token_only(self):
+        text = SUMMARY_OK.replace("Claim type\nlemma", "Claim type\nlemma — a local fixture, not RH.")
+        errors = check_summary(text, claim_type="lemma", packet_id="P-20260914-fx01")
+        self.assertEqual(errors, [])
+
     def test_summary_accepts_minimal_real_five_sections(self):
         errors = check_summary(
             SUMMARY_OK, claim_type="lemma", packet_id="P-20260914-fx01"
