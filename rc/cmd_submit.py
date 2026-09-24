@@ -45,8 +45,13 @@ def _git(
         env["RC_GIT_ASKPASS_TOKEN"] = token
         env["GCM_INTERACTIVE"] = "never"
     try:
+        cmd = ["git", "-C", str(world)]
+        if token:
+            # ASKPASS must not be persisted by credential.helper store.
+            cmd += ["-c", "credential.helper="]
+        cmd += list(args)
         return subprocess.run(
-            ["git", "-C", str(world), *args],
+            cmd,
             capture_output=True,
             text=True,
             check=False,
