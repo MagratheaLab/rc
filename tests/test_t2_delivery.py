@@ -8,7 +8,9 @@ import unittest
 from pathlib import Path
 
 from rc.branch import allowed_lock_conflict, check_packet_id, check_world_branch
-from rc.cmd_submit import pr_body
+from unittest.mock import MagicMock, patch
+
+from rc.cmd_submit import _git, pr_body
 from rc.delivery import check_summary, check_tree, word_count
 from rc.packet import parse_packet_markdown
 from tests.support import (
@@ -174,6 +176,18 @@ lemma
     def test_submit_pr_body_closes_packet_issue(self):
         self.assertIn("Closes #12", pr_body("P-20260914-fx01", "lemma", 12))
         self.assertNotIn("Closes", pr_body("P-20260914-fx01", "lemma", None))
+
+    def test_git_push_disables_credential_helper_store(self):
+        mock_run = MagicMock(return_value=MagicMock(returncode=0, stdout="", stderr=""))
+        with patch("rc.cmd_submit.subprocess.run", mock_run):
+            _git(self.world, "push", "-u", "origin", "packet/P-x", token="tok")
+        cmd = mock_run.call_args[0][0]
+        self.assertIn("-c", cmd)
+        self.assertIn("credential.helper=", cmd)
+        env = mock_run.call_args.kwargs["env"]
+        self.assertEqual(env.get("GIT_TERMINAL_PROMPT"), "0")
+        self.assertTrue(env.get("GIT_ASKPASS"))
+        self.assertEqual(env.get("GCM_INTERACTIVE"), "never")
 
     def test_packet_branch_contract(self):
         self.assertIsNone(check_packet_id("P-20260914-fx01"))
