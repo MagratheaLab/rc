@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import os
+import stat
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 from rc.branch import allowed_lock_conflict, check_packet_id, packet_branch
@@ -19,13 +22,42 @@ def pr_body(packet_id: str, claim_type: str, issue_number: int | None) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _git(world: Path, *args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["git", "-C", str(world), *args],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+_ASKPASS = r"""#!/bin/sh
+case "$1" in
+  *[Uu]sername*) echo x-access-token ;;
+  *) echo "$RC_GIT_ASKPASS_TOKEN" ;;
+esac
+"""
+
+
+def _git(
+    world: Path, *args: str, token: str | None = None
+) -> subprocess.CompletedProcess:
+    env = os.environ.copy()
+    tmp = None
+    if token:
+        tmp = tempfile.NamedTemporaryFile("w", delete=False, prefix="rc-askpass-")
+        tmp.write(_ASKPASS)
+        tmp.close()
+        os.chmod(tmp.name, stat.S_IRWXU)
+        env["GIT_TERMINAL_PROMPT"] = "0"
+        env["GIT_ASKPASS"] = tmp.name
+        env["RC_GIT_ASKPASS_TOKEN"] = token
+        env["GCM_INTERACTIVE"] = "never"
+    try:
+        return subprocess.run(
+            ["git", "-C", str(world), *args],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=env,
+        )
+    finally:
+        if tmp is not None:
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
 
 
 def run(cfg: Config, argv: list[str]) -> int:
@@ -122,7 +154,7 @@ def run(cfg: Config, argv: list[str]) -> int:
     if commit.returncode != 0:
         print(commit.stderr or commit.stdout, file=sys.stderr)
         return 1
-    push = _git(world, "push", "-u", "origin", branch)
+    push = _git(world, "push", "-u", "origin", branch, token=cfg.token)
     if push.returncode != 0:
         print(push.stderr, file=sys.stderr)
         return 1
