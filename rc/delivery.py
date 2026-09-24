@@ -129,7 +129,8 @@ def check_summary(
             if not body or not re.search(r"[A-Za-z0-9]", body):
                 errors.append(f"SUMMARY_EMPTY:{heading}")
         claim_body = (sections.get("Claim type") or "").strip().splitlines()
-        claimed = (claim_body[0] if claim_body else "").strip().lower()
+        raw_claim = (claim_body[0] if claim_body else "").strip().lower()
+        claimed = re.split(r"[^a-z0-9]+", raw_claim, maxsplit=1)[0] if raw_claim else ""
         if claimed and claimed not in SUMMARY_CLAIM_TYPES:
             errors.append(f"SUMMARY.md claim type {claimed!r} not allowed")
         elif claimed and claim_type and claimed != claim_type:
