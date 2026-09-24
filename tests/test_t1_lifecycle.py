@@ -82,6 +82,64 @@ class TestT1Lifecycle(unittest.TestCase):
         chosen = select_issue([q, mixed, packet], {}, "")
         self.assertEqual(chosen["number"], 3)
 
+    def test_next_skips_packet_plus_question_via_api(self):
+        mixed = issue(
+            title="P-20260914-fx01 but also question",
+            labels=[{"name": "packet"}, {"name": "question"}],
+        )
+        url, _store = self._gh(mixed)
+        env = env_for(self.world, url, self.core_url)
+        code, out, err = run_rc(["next"], env, self.world)
+        self.assertEqual(code, 0, err)
+        self.assertIn("packet=none", out)
+        self.assertIn("IDLE", out)
+
+    def test_claim_refuses_packet_plus_question(self):
+        mixed = issue(
+            labels=[{"name": "packet"}, {"name": "question"}],
+        )
+        url, _store = self._gh(mixed)
+        env = env_for(self.world, url, self.core_url)
+        code, _out, err = run_rc(["claim", "P-20260914-fx01"], env, self.world)
+        self.assertEqual(code, 1)
+        self.assertIn("CLAIM_FAIL", err)
+        self.assertIn("question", err)
+
+    def test_observer_at_mention_is_not_work(self):
+        q = issue(
+            title="Q: please do fx01",
+            body="not a packet",
+            labels=[{"name": "question"}],
+        )
+        url, store = self._gh(q)
+        store["comments"] = {
+            1: [{"body": "@tester doe packet P-20260914-fx01"}]
+        }
+        env = env_for(self.world, url, self.core_url)
+        env["RC_AGENT_ID"] = "tester"
+        code, out, err = run_rc(["next"], env, self.world)
+        self.assertEqual(code, 0, err)
+        self.assertIn("packet=none", out)
+        self.assertIn("IDLE", out)
+
+    def test_worker_named_hermes_does_not_post_assign(self):
+        url, store = self._gh(issue())
+        env = env_for(self.world, url, self.core_url)
+        env["RC_AGENT_ID"] = "Hermes"
+        code, _out, err = run_rc(["next"], env, self.world)
+        self.assertEqual(code, 0, err)
+        code, _out, err = run_rc(["claim", "P-20260914-fx01"], env, self.world)
+        self.assertEqual(code, 0, err)
+        blob = " ".join(store.get("urls") or [])
+        comments = store.get("comments") or {}
+        bodies = " ".join(
+            c.get("body") or "" for cs in comments.values() for c in cs
+        )
+        self.assertNotIn("DISPATCH_ASSIGN", blob)
+        self.assertNotIn("HERMES_ASSIGN", blob)
+        self.assertNotIn("DISPATCH_ASSIGN", bodies)
+        self.assertNotIn("HERMES_ASSIGN", bodies)
+
     def test_second_claim_fails(self):
         body = (
             "packet: P-20260914-fx01\npriority: P2\nclaim_type: lemma\nttl: 24h\n"
