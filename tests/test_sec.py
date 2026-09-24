@@ -38,6 +38,21 @@ class TestSecUnit(unittest.TestCase):
         )
         self.assertTrue(any("protocol_violation" in e for e in errors))
 
+    def test_adv12_skill_version_mismatch_rejected(self):
+        changed = write_receipts(
+            self.world,
+            self.packet.packet,
+            fx01_cert(skill_version="0.1.0"),
+            SUMMARY_OK,
+        )
+        errors = check_tree(
+            self.world,
+            self.packet,
+            changed,
+            require_delivery=True,
+        )
+        self.assertTrue(any("skill_version" in e for e in errors))
+
     def test_sec10_numeric_cannot_prove_rh(self):
         errors = check_summary("Goal\nThis proves RH.\n", claim_type="numeric")
         self.assertTrue(any("prove-language" in e or "millennium" in e for e in errors))

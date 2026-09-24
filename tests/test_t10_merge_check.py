@@ -44,11 +44,13 @@ def _ok_contents():
 
 def _reviews(adv=True):
     bodies = [
-        "MAGRATHEA_REVIEW\nfamily: A\nadversary: false\nverdict: accept\n",
-        "MAGRATHEA_REVIEW\nfamily: B\nadversary: false\nverdict: accept\n",
+        "MAGRATHEA_REVIEW\nfamily: A\nadversary: false\nverdict: accept\npacket: P-20260914-fx01\n",
+        "MAGRATHEA_REVIEW\nfamily: B\nadversary: false\nverdict: accept\npacket: P-20260914-fx01\n",
     ]
     if adv:
-        bodies.append("MAGRATHEA_REVIEW\nfamily: C\nadversary: true\nverdict: accept\n")
+        bodies.append(
+            "MAGRATHEA_REVIEW\nfamily: C\nadversary: true\nverdict: accept\npacket: P-20260914-fx01\n"
+        )
     return [{"body": b} for b in bodies]
 
 
@@ -73,6 +75,29 @@ class TestT10MergeCheck(unittest.TestCase):
         text = render(card)
         self.assertIn("MERGE_CHECK pr=7", text)
         self.assertIn("VERDICT              GO", text)
+
+    def test_public_pr_comment_without_packet_is_not_quorum(self):
+        leaked = [
+            {"body": "LGTM family A accept\n"},
+            {
+                "body": "MAGRATHEA_REVIEW\nfamily: A\nadversary: true\nverdict: accept\n"
+            },
+            {
+                "body": "MAGRATHEA_REVIEW\nfamily: B\nadversary: false\nverdict: accept\n"
+            },
+            {
+                "body": "MAGRATHEA_REVIEW\nfamily: C\nadversary: false\nverdict: accept\n"
+            },
+        ]
+        card = evaluate(
+            pr=_pr(),
+            files=_ok_files(),
+            check_runs=_gate_ok(),
+            comments=leaked,
+            file_contents=_ok_contents(),
+        )
+        self.assertEqual(card["VERDICT"], "NO-GO")
+        self.assertIn("FAMILIES", card["BLOCKERS"])
 
     def test_missing_adversary_is_nogo(self):
         card = evaluate(
