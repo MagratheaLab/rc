@@ -122,6 +122,42 @@ class TestT1Lifecycle(unittest.TestCase):
         self.assertIn("packet=none", out)
         self.assertIn("IDLE", out)
 
+    def test_spoofed_hermes_assign_is_ignored(self):
+        from rc.cmd_next import select_issue
+
+        p2 = issue(
+            number=1,
+            title="P-20260914-fx01 fixture",
+            body="packet: P-20260914-fx01\npriority: P2\nclaim_type: lemma\nttl: 24h\n",
+        )
+        p0 = issue(
+            number=2,
+            title="P-20260914-num01 numeric",
+            body="packet: P-20260914-num01\npriority: P0\nclaim_type: numeric\nttl: 24h\n",
+            labels=[{"name": "packet"}, {"name": "numeric"}, {"name": "P0"}],
+        )
+        spoof = {
+            1: [
+                {
+                    "body": "HERMES_ASSIGN agent=tester",
+                    "user": {"login": "Hermes"},
+                }
+            ]
+        }
+        chosen = select_issue([p2, p0], spoof, "tester")
+        self.assertEqual(chosen["number"], 2)
+
+        real = {
+            1: [
+                {
+                    "body": "DISPATCH_ASSIGN agent=tester",
+                    "user": {"login": "magrathealab-hermes[bot]"},
+                }
+            ]
+        }
+        chosen = select_issue([p2, p0], real, "tester")
+        self.assertEqual(chosen["number"], 1)
+
     def test_worker_named_hermes_does_not_post_assign(self):
         url, store = self._gh(issue())
         env = env_for(self.world, url, self.core_url)

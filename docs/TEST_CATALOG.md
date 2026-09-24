@@ -20,7 +20,7 @@ in the loop after the packet exists.
 - ADV-12 skill_version 0.1.0 on 0.1.4 world → `tests/test_sec.py`
 - ADV-20 public PR comment without `packet:` is not quorum → `tests/test_t10_merge_check.py`
 - ADV-24 `rc gate --ci` refuses `RC_LAKE_MODE=ci` → `tests/test_t3_gates.py`
-- ADV-4 worker named Hermes never posts DISPATCH_ASSIGN → `tests/test_t1_lifecycle.py`
+- ADV-4 worker named Hermes never posts DISPATCH_ASSIGN; spoofed HERMES_ASSIGN ignored unless comment login is `magrathealab-hermes[bot]` → `tests/test_t1_lifecycle.py`
 - ADV-15 `packet`+`question` skipped by `next` and refused by `claim` → same
 - ADV-26 observer `@doe packet` is not work → same
 - AUTO-2 empty queue IDLE → `tests/test_auto.py`
