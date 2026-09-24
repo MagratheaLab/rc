@@ -37,13 +37,13 @@ def _changed_files(world: Path, work: Path) -> list[str]:
         base = world / rel
         if not base.is_file() or base.read_bytes() != path.read_bytes():
             changed.append(rel)
-    for name in ("CERTIFICATE.json", "SUMMARY.md"):
-        if (work / name).is_file() or (world / name).is_file():
-            src = work / name if (work / name).is_file() else world / name
-            base_ok = False
-            # delivery files are always "in the PR"
-            if src.is_file():
-                changed.append(name)
+    for path in list(work.rglob("receipts/*/*")) + list(world.rglob("receipts/*/*")):
+        if path.is_file():
+            try:
+                rel = path.relative_to(work).as_posix()
+            except ValueError:
+                rel = path.relative_to(world).as_posix()
+            changed.append(rel)
     # unique preserve order
     seen = set()
     uniq = []
@@ -209,7 +209,7 @@ def run(cfg: Config, argv: list[str]) -> int:
     errors.extend(
         check_tree(overlay_root if overlay_root.is_dir() else world, packet, changed, require_delivery=require_delivery)
     )
-    # CERTIFICATE/SUMMARY live at world root in CI checkouts.
+    # CERTIFICATE/SUMMARY live under receipts/<packet>/ (root leftovers still read).
     if overlay_root != world and ci:
         errors.extend(
             check_tree(world, packet, changed, require_delivery=True)

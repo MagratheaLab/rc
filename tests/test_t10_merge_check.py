@@ -15,18 +15,22 @@ def _pr():
     }
 
 
+CERT_REL = "receipts/P-20260914-fx01/CERTIFICATE.json"
+SUM_REL = "receipts/P-20260914-fx01/SUMMARY.md"
+
+
 def _ok_files():
     return [
         {"filename": "RiemannCanon.lean", "patch": "+theorem one_add_one : 1 + 1 = 2 := rfl\n"},
-        {"filename": "CERTIFICATE.json", "patch": ""},
-        {"filename": "SUMMARY.md", "patch": ""},
+        {"filename": CERT_REL, "patch": ""},
+        {"filename": SUM_REL, "patch": ""},
     ]
 
 
 def _ok_contents():
     return {
         "RiemannCanon.lean": "theorem one_add_one : 1 + 1 = 2 := rfl\n",
-        "CERTIFICATE.json": json.dumps(
+        CERT_REL: json.dumps(
             {
                 "packet": "P-20260914-fx01",
                 "claim_type": "lemma",
@@ -34,7 +38,7 @@ def _ok_contents():
                 "allowed_files": ["RiemannCanon.lean"],
             }
         ),
-        "SUMMARY.md": "Goal\nfx01\n\nWhat changed\nrfl\n\nWhy CANON allows it\nfixture\n\nWhat would falsify this\nsorry\n\nClaim type\nlemma\n",
+        SUM_REL: "Goal\nfx01\n\nWhat changed\nrfl\n\nWhy CANON allows it\nfixture\n\nWhat would falsify this\nsorry\n\nClaim type\nlemma\n",
     }
 
 
@@ -84,8 +88,8 @@ class TestT10MergeCheck(unittest.TestCase):
 
     def test_missing_summary_is_nogo(self):
         contents = _ok_contents()
-        del contents["SUMMARY.md"]
-        files = [f for f in _ok_files() if f["filename"] != "SUMMARY.md"]
+        del contents[SUM_REL]
+        files = [f for f in _ok_files() if f["filename"] != SUM_REL]
         card = evaluate(
             pr=_pr(),
             files=files,
@@ -115,8 +119,8 @@ class TestT10MergeCheck(unittest.TestCase):
         contents["RiemannCanon.lean"] = "theorem one_add_one : 1 + 1 = 2 := sorry\n"
         files = [
             {"filename": "RiemannCanon.lean", "patch": "+theorem one_add_one : 1 + 1 = 2 := sorry\n"},
-            {"filename": "CERTIFICATE.json", "patch": ""},
-            {"filename": "SUMMARY.md", "patch": ""},
+            {"filename": CERT_REL, "patch": ""},
+            {"filename": SUM_REL, "patch": ""},
         ]
         card = evaluate(
             pr=_pr(),

@@ -10,7 +10,7 @@ from urllib.parse import quote
 
 from rc.branch import PACKET_BRANCH_RE
 from rc.config import Config
-from rc.delivery import word_count
+from rc.delivery import is_receipt_path, pick_receipt_text, receipt_files, word_count
 from rc.github_api import GitHub, split_repo
 from rc.linter import lint_lean_source
 
@@ -66,8 +66,8 @@ def evaluate(
     ref = (pr.get("head") or {}).get("ref") or ""
     branch_st = "PASS" if PACKET_BRANCH_RE.match(ref) else "FAIL"
     names = [f.get("filename") or "" for f in files]
-    cert_raw = file_contents.get("CERTIFICATE.json")
-    summary_raw = file_contents.get("SUMMARY.md")
+    cert_raw = pick_receipt_text(file_contents, "CERTIFICATE.json")
+    summary_raw = pick_receipt_text(file_contents, "SUMMARY.md")
 
     cert_st = "MISSING"
     stmt_st = "MISSING"
@@ -92,12 +92,14 @@ def evaluate(
 
     extra_ok = {"CERTIFICATE.json", "SUMMARY.md"}
     if packet:
+        extra_ok.update(receipt_files(packet))
         extra_ok.add(f"packets/{packet}.md")
     allowed_st = "PASS"
     for name in names:
-        if name not in allowed and name not in extra_ok:
-            allowed_st = "FAIL"
-            break
+        if name in allowed or name in extra_ok or is_receipt_path(name):
+            continue
+        allowed_st = "FAIL"
+        break
 
     sorry = "CLEAN"
     for name, src in file_contents.items():

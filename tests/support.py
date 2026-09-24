@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from rc.cli import main as rc_main
+from rc.delivery import receipt_files
 
 PINNED_IMAGE = (
     "magrathea-gate:lean-4.33.0@"
@@ -82,6 +83,37 @@ File: packets/P-20260914-fx01.md
 """
 
 SKILL = {"name": "magrathea", "version": "0.1.4", "files": ["SKILL.md"]}
+
+
+def write_receipts(
+    world: Path, packet_id: str, cert: dict, summary: str
+) -> list[str]:
+    cert_rel, sum_rel = receipt_files(packet_id)
+    cert_path = world / cert_rel
+    sum_path = world / sum_rel
+    cert_path.parent.mkdir(parents=True, exist_ok=True)
+    cert_path.write_text(json.dumps(cert, indent=2) + "\n", encoding="utf-8")
+    sum_path.write_text(summary, encoding="utf-8")
+    return [cert_rel, sum_rel]
+
+
+def fx01_cert(**overrides) -> dict:
+    data = {
+        "packet": "P-20260914-fx01",
+        "claim_type": "lemma",
+        "skill_version": "0.1.4",
+        "canon_hash": "sha256:" + "b" * 64,
+        "statement_hash": "sha256:" + "c" * 64,
+        "agent_id": "t",
+        "family": "A",
+        "model_id": "m",
+        "allowed_files": ["RiemannCanon.lean"],
+        "gate": {"local": "pass", "commands": ["lake build RiemannCanon"]},
+        "proof_kind": "lean",
+        "summary": "receipts/P-20260914-fx01/SUMMARY.md",
+    }
+    data.update(overrides)
+    return data
 
 
 def git(cwd: Path, *args: str) -> None:
