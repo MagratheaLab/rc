@@ -17,6 +17,9 @@ in the loop after the packet exists.
 
 - SEC-4 secrets inside SUMMARY → `tests/test_sec.py`
 - SEC-10 numeric/millennium language → `tests/test_sec.py`
+- ADV-12 skill_version 0.1.0 on 0.1.4 world → `tests/test_sec.py`
+- ADV-20 public PR comment without `packet:` is not quorum → `tests/test_t10_merge_check.py`
+- ADV-24 `rc gate --ci` refuses `RC_LAKE_MODE=ci` → `tests/test_t3_gates.py`
 - AUTO-2 empty queue IDLE → `tests/test_auto.py`
 - SEC-7 `DISPATCHER_URL=http://127.0.0.1` ignored by `rc next` (same test)
 

@@ -18,7 +18,8 @@ REVIEW_BLOCK = re.compile(
     r"MAGRATHEA_REVIEW\s+"
     r"family:\s*(?P<family>\S+)\s+"
     r"adversary:\s*(?P<adversary>true|false)\s+"
-    r"verdict:\s*(?P<verdict>accept|reject)",
+    r"verdict:\s*(?P<verdict>accept|reject)"
+    r"(?:\s+packet:\s*(?P<packet>P-\d{8}-[a-z0-9]+))?",
     re.I,
 )
 
@@ -38,6 +39,7 @@ def parse_reviews(comments: list[dict]) -> list[dict]:
                 "family": match.group("family"),
                 "adversary": match.group("adversary").lower() == "true",
                 "verdict": match.group("verdict").lower(),
+                "packet": match.group("packet") or "",
             }
         )
     return out
@@ -109,7 +111,11 @@ def evaluate(
             sorry = "HIT"
             break
 
-    reviews = [r for r in parse_reviews(comments) if r["verdict"] == "accept"]
+    reviews = [
+        r
+        for r in parse_reviews(comments)
+        if r["verdict"] == "accept" and r.get("packet") and (not packet or r["packet"] == packet)
+    ]
     families = sorted({r["family"] for r in reviews})
     nfam = len(families)
     has_adv = any(r["adversary"] for r in reviews)

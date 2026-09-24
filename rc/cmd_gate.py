@@ -158,6 +158,8 @@ def run(cfg: Config, argv: list[str]) -> int:
     lake_out = ""
     lake_ran = False
     lake_mode = cfg.lake_mode if cfg.lake_mode in {"docker", "ci"} else "docker"
+    if ci and packet.claim_type == "lemma" and lake_mode == "ci":
+        errors.append("delivery cannot use RC_LAKE_MODE=ci; lake build is the judge")
     if not errors and packet.claim_type == "lemma" and lake_mode == "ci":
         print("lake=ci (canonical judge is world GitHub Action)")
     elif not errors and packet.claim_type == "lemma":

@@ -63,6 +63,13 @@ class TestT3Gates(unittest.TestCase):
         self.assertIn("lake=ci", out)
         self.assertIn("gate=pass", out)
 
+    def test_delivery_flag_rejects_lake_mode_ci(self):
+        env = dict(self.env)
+        env["RC_LAKE_MODE"] = "ci"
+        code, _out, err = run_rc(["gate", "--ci", "P-20260914-fx01"], env, self.world)
+        self.assertEqual(code, 1)
+        self.assertIn("RC_LAKE_MODE=ci", err)
+
     def test_sorry_fails_gate(self):
         self.lean.write_text(LEAN_SORRY, encoding="utf-8")
         code, _out, err = run_rc(["gate", "P-20260914-fx01"], self.env, self.world)
