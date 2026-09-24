@@ -23,5 +23,5 @@ in the loop after the packet exists.
 ## Still blocked (need owner)
 
 SEC-1/2/5/6 live PAT of user W, App install token, reviews ACL.
-AUTO-1/4/5/9 live: one fixture packet + machine-user W.
+AUTO-1/4/5/9 live: fixture packet exists (`riemann` #18 `P-20260924-t8w`). Still needs machine-user W (not owner, not Grok).
 Until AUTO-10 is PASS on GitHub: **not live**. No recruiting.
