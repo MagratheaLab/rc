@@ -58,6 +58,12 @@ def run(cfg: Config, argv: list[str]) -> int:
     issue = find_packet_issue(gh, owner, repo, packet_id)
     number = issue["number"]
     labels = label_names(issue)
+    if "question" in labels:
+        print(
+            f"CLAIM_FAIL packet={packet_id} mixed labels packet+question",
+            file=sys.stderr,
+        )
+        return 1
     meta = parse_issue_body(issue.get("body") or "")
     ttl = parse_ttl(meta.get("ttl") or "24h")
     until = parse_time(meta.get("claimed_until"))
