@@ -11,6 +11,13 @@ from rc.packet import parse_issue_body
 HERMES_ASSIGN = re.compile(
     r"(?:DISPATCH_ASSIGN|HERMES_ASSIGN)\s+agent=(?P<agent>\S+)(?:\s+family=(?P<family>\S+))?"
 )
+# Assign comments count only from the org App, not from a worker nicknamed Hermes.
+DISPATCHER_LOGINS = frozenset(
+    {
+        "magrathealab-hermes[bot]",
+        "magrathealab-hermes",
+    }
+)
 
 
 def _rank(priority: str) -> int:
@@ -40,6 +47,9 @@ def select_issue(issues: list[dict], comments_by_number: dict[int, list[dict]], 
         if not _is_open_packet(issue):
             continue
         for comment in comments_by_number.get(issue["number"], []):
+            login = ((comment.get("user") or {}).get("login") or "").lower()
+            if login not in {n.lower() for n in DISPATCHER_LOGINS}:
+                continue
             match = HERMES_ASSIGN.search(comment.get("body") or "")
             if match and agent_id and match.group("agent") == agent_id:
                 assigned.append(issue)
