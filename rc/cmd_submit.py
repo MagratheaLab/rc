@@ -6,7 +6,7 @@ from pathlib import Path
 
 from rc.branch import allowed_lock_conflict, check_packet_id, packet_branch
 from rc.config import Config
-from rc.delivery import check_tree
+from rc.delivery import check_tree, receipt_files
 from rc.github_api import GitHub, label_names, split_repo
 from rc.packet import load_packet_file
 from rc.state import find_world, work_dir
@@ -42,7 +42,8 @@ def run(cfg: Config, argv: list[str]) -> int:
     packet = load_packet_file(world, packet_id)
     work = work_dir(world, packet_id)
     overlay = work if work.is_dir() else world
-    for name in ("CERTIFICATE.json", "SUMMARY.md"):
+    cert_rel, sum_rel = receipt_files(packet.packet)
+    for name in (cert_rel, sum_rel):
         if not (overlay / name).is_file():
             print(f"submit requires {name}", file=sys.stderr)
             return 1
@@ -107,7 +108,7 @@ def run(cfg: Config, argv: list[str]) -> int:
     if created.returncode != 0:
         print(created.stderr, file=sys.stderr)
         return 1
-    files = list(packet.allowed_files) + ["CERTIFICATE.json", "SUMMARY.md"]
+    files = list(packet.allowed_files) + [cert_rel, sum_rel]
     add = _git(world, "add", "--", *files)
     if add.returncode != 0:
         print(add.stderr, file=sys.stderr)

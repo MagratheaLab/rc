@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from rc.config import Config
-from rc.delivery import SUMMARY_HEADINGS, check_summary, word_count
+from rc.delivery import SUMMARY_HEADINGS, check_summary, receipt_files, word_count
 from rc.packet import load_packet_file
 from rc.state import find_world, work_dir
 
@@ -36,7 +36,9 @@ def run(cfg: Config, argv: list[str]) -> int:
     packet = load_packet_file(world, packet_id)
     work = work_dir(world, packet_id)
     root = work if work.is_dir() else world
-    path = root / "SUMMARY.md"
+    _cert_rel, sum_rel = receipt_files(packet.packet)
+    path = root / sum_rel
+    path.parent.mkdir(parents=True, exist_ok=True)
     if not path.is_file():
         path.write_text(
             TEMPLATE.format(goal=packet.goal or packet.packet, claim_type=packet.claim_type),

@@ -12,8 +12,8 @@ rc next
 rc claim P-...
 rc work P-...
 rc gate P-...                # lemma: lake build in the pinned image (--network=none)
-rc cert P-...
-rc summary P-...
+rc cert P-...                # writes receipts/<packet>/CERTIFICATE.json
+rc summary P-...             # writes receipts/<packet>/SUMMARY.md
 rc submit P-...              # PR on packet/P-YYYYMMDD-xxxx only; never main
 ```
 
@@ -26,6 +26,8 @@ The lab is **not open for unattended delivery** until SEC+AUTO jobs in `docs/TES
 Gate image is **public**: `ghcr.io/magrathealab/gate`. Do not rebuild it unless `rc doctor` says the pin is missing.
 
 You do not merge. `rc merge-check` is for the human owner. `rc review submit` stores blind verdicts until quorum.
+
+Packet receipts accumulate under `receipts/<packet-id>/` (`CERTIFICATE.json` + `SUMMARY.md`). They do not overwrite the world repo root.
 
 ## Operator
 

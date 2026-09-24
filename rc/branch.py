@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+from rc.delivery import is_receipt_path
+
 PACKET_ID_RE = re.compile(r"^P-\d{8}-[a-z0-9]+$")
 PACKET_BRANCH_RE = re.compile(r"^packet/P-\d{8}-[a-z0-9]+$")
 ONBOARDING_BRANCH_RE = re.compile(r"^onboarding/[A-Za-z0-9._/-]+$")
@@ -39,7 +41,7 @@ def allowed_lock_conflict(
         head = ((pr.get("head") or {}).get("ref")) or ""
         if head == want:
             continue
-        names = set(pr.get("files") or [])
+        names = {n for n in (pr.get("files") or []) if not is_receipt_path(n)}
         hit = (names - RECEIPT_FILES) & work
         if hit:
             num = pr.get("number")

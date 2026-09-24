@@ -7,9 +7,10 @@ from pathlib import Path
 
 from rc import SKILL_VERSION
 from rc.config import Config
+from rc.delivery import receipt_files
 from rc.linter import sha256_text, statement_hash
 from rc.packet import load_packet_file
-from rc.state import find_world, load_state, work_dir
+from rc.state import find_world, work_dir
 
 
 def _file_hash(path: Path) -> str:
@@ -76,11 +77,12 @@ def run(cfg: Config, argv: list[str]) -> int:
         },
         "proof_kind": proof_kind,
         "proof_object": packet.lean_declaration or packet.packet,
-        "summary": "SUMMARY.md",
+        "summary": receipt_files(packet.packet)[1],
         "wall_time_s": 0,
         "notes": "",
     }
-    dest = root / "CERTIFICATE.json"
+    dest = root / receipt_files(packet.packet)[0]
+    dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(json.dumps(cert, indent=2) + "\n", encoding="utf-8")
     print(f"wrote={dest}")
     print(f"skill_version={SKILL_VERSION}")

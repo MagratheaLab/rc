@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import tempfile
 import unittest
 from pathlib import Path
 
 from rc.delivery import check_summary, check_tree, scan_secrets
 from rc.packet import parse_packet_markdown
-from tests.support import PACKET
+from tests.support import PACKET, fx01_cert, write_receipts
 from tests.test_t2_delivery import SUMMARY_OK
 
 
@@ -25,30 +24,16 @@ class TestSecUnit(unittest.TestCase):
     def test_sec4_secret_in_summary_rejected(self):
         text = SUMMARY_OK + "\ntoken ghp_" + ("a" * 36) + "\n"
         self.assertTrue(scan_secrets(text))
-        (self.world / "SUMMARY.md").write_text(text, encoding="utf-8")
-        (self.world / "CERTIFICATE.json").write_text(
-            json.dumps(
-                {
-                    "packet": "P-20260914-fx01",
-                    "claim_type": "lemma",
-                    "skill_version": "0.1.4",
-                    "canon_hash": "sha256:" + "b" * 64,
-                    "statement_hash": "sha256:" + "c" * 64,
-                    "agent_id": "t",
-                    "family": "A",
-                    "model_id": "m",
-                    "allowed_files": ["RiemannCanon.lean"],
-                    "gate": {"local": "pass", "commands": []},
-                    "proof_kind": "lean",
-                    "summary": "SUMMARY.md",
-                }
-            ),
-            encoding="utf-8",
+        changed = write_receipts(
+            self.world,
+            self.packet.packet,
+            fx01_cert(gate={"local": "pass", "commands": []}),
+            text,
         )
         errors = check_tree(
             self.world,
             self.packet,
-            ["CERTIFICATE.json", "SUMMARY.md"],
+            changed,
             require_delivery=True,
         )
         self.assertTrue(any("protocol_violation" in e for e in errors))

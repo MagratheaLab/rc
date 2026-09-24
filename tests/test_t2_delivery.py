@@ -16,9 +16,11 @@ from tests.support import (
     PACKET,
     SKILL,
     env_for,
+    fx01_cert,
     make_world,
     run_rc,
     serve,
+    write_receipts,
 )
 
 SUMMARY_OK = """Goal
@@ -51,57 +53,52 @@ class TestT2Delivery(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_pr_without_certificate_rejected(self):
-        (self.world / "SUMMARY.md").write_text(SUMMARY_OK, encoding="utf-8")
-        errors = check_tree(self.world, self.packet, ["SUMMARY.md"], require_delivery=True)
+        write_receipts(self.world, self.packet.packet, fx01_cert(), SUMMARY_OK)
+        (self.world / "receipts" / self.packet.packet / "CERTIFICATE.json").unlink()
+        errors = check_tree(
+            self.world,
+            self.packet,
+            ["receipts/P-20260914-fx01/SUMMARY.md"],
+            require_delivery=True,
+        )
         self.assertTrue(any("CERTIFICATE.json" in e for e in errors))
 
     def test_pr_without_summary_rejected(self):
-        (self.world / "CERTIFICATE.json").write_text(
-            json.dumps(
-                {
-                    "packet": "P-20260914-fx01",
-                    "claim_type": "lemma",
-                    "skill_version": "0.1.4",
-                    "canon_hash": "sha256:" + "b" * 64,
-                    "statement_hash": "sha256:" + "c" * 64,
-                    "agent_id": "t",
-                    "family": "A",
-                    "model_id": "m",
-                    "allowed_files": ["RiemannCanon.lean"],
-                    "gate": {"local": "pass", "commands": ["lake build RiemannCanon"]},
-                    "proof_kind": "lean",
-                    "summary": "SUMMARY.md",
-                }
-            ),
-            encoding="utf-8",
-        )
+        write_receipts(self.world, self.packet.packet, fx01_cert(), SUMMARY_OK)
+        (self.world / "receipts" / self.packet.packet / "SUMMARY.md").unlink()
         errors = check_tree(
-            self.world, self.packet, ["CERTIFICATE.json"], require_delivery=True
+            self.world,
+            self.packet,
+            ["receipts/P-20260914-fx01/CERTIFICATE.json"],
+            require_delivery=True,
         )
         self.assertTrue(any("SUMMARY.md" in e for e in errors))
 
     def test_summary_over_500_words_rejected(self):
         text = SUMMARY_OK + "\n" + " word" * 501
         self.assertGreater(word_count(text), 500)
-        (self.world / "SUMMARY.md").write_text(text, encoding="utf-8")
+        changed = write_receipts(
+            self.world, self.packet.packet, fx01_cert(gate={"local": "pass", "commands": []}), text
+        )
+        errors = check_tree(
+            self.world,
+            self.packet,
+            changed,
+            require_delivery=True,
+        )
+        self.assertTrue(any("500" in e for e in errors))
+
+    def test_receipts_dir_is_not_an_allowed_files_violation(self):
+        changed = write_receipts(self.world, self.packet.packet, fx01_cert(), SUMMARY_OK)
+        errors = check_tree(
+            self.world, self.packet, changed + ["RiemannCanon.lean"], require_delivery=True
+        )
+        self.assertFalse(any("allowed_files" in e for e in errors))
+
+    def test_root_leftover_receipt_still_accepted(self):
+        (self.world / "SUMMARY.md").write_text(SUMMARY_OK, encoding="utf-8")
         (self.world / "CERTIFICATE.json").write_text(
-            json.dumps(
-                {
-                    "packet": "P-20260914-fx01",
-                    "claim_type": "lemma",
-                    "skill_version": "0.1.4",
-                    "canon_hash": "sha256:" + "b" * 64,
-                    "statement_hash": "sha256:" + "c" * 64,
-                    "agent_id": "t",
-                    "family": "A",
-                    "model_id": "m",
-                    "allowed_files": ["RiemannCanon.lean"],
-                    "gate": {"local": "pass", "commands": []},
-                    "proof_kind": "lean",
-                    "summary": "SUMMARY.md",
-                }
-            ),
-            encoding="utf-8",
+            json.dumps(fx01_cert(summary="SUMMARY.md")), encoding="utf-8"
         )
         errors = check_tree(
             self.world,
@@ -109,7 +106,7 @@ class TestT2Delivery(unittest.TestCase):
             ["CERTIFICATE.json", "SUMMARY.md"],
             require_delivery=True,
         )
-        self.assertTrue(any("500" in e for e in errors))
+        self.assertFalse(any("PR missing" in e for e in errors))
 
     def test_numeric_prove_language_rejected(self):
         from rc.delivery import check_summary
@@ -136,7 +133,7 @@ class TestT2Delivery(unittest.TestCase):
         other = {
             "number": 3,
             "head": {"ref": "packet/P-20260914-num01"},
-            "files": ["numeric/fx_interval.py", "CERTIFICATE.json"],
+            "files": ["numeric/fx_interval.py", "receipts/P-20260914-num01/CERTIFICATE.json"],
         }
         self.assertIsNone(
             allowed_lock_conflict(

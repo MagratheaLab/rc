@@ -6,7 +6,7 @@ import json
 import re
 from pathlib import Path
 
-from rc import DELIVERY_FILES, SKILL_VERSION
+from rc import SKILL_VERSION
 from rc.packet import Packet
 
 SUMMARY_LIMIT = 500
@@ -44,6 +44,41 @@ CERT_REQUIRED = (
     "proof_kind",
     "summary",
 )
+
+
+def receipt_dir(packet_id: str) -> str:
+    return f"receipts/{packet_id}"
+
+
+def receipt_files(packet_id: str) -> tuple[str, str]:
+    d = receipt_dir(packet_id)
+    return f"{d}/CERTIFICATE.json", f"{d}/SUMMARY.md"
+
+
+def is_receipt_path(path: str) -> bool:
+    return (path or "").startswith("receipts/")
+
+
+def resolve_receipt_paths(root: Path, packet_id: str) -> tuple[Path, Path]:
+    """Prefer receipts/<id>/; fall back to repo-root leftovers."""
+    cert_rel, sum_rel = receipt_files(packet_id)
+    cert = root / cert_rel
+    summary = root / sum_rel
+    if cert.is_file() or summary.is_file():
+        return cert, summary
+    return root / "CERTIFICATE.json", root / "SUMMARY.md"
+
+
+def pick_receipt_text(file_contents: dict[str, str], basename: str) -> str | None:
+    """PR head: receipts/<id>/<basename> wins over a root leftover."""
+    matches = [
+        file_contents[k]
+        for k in file_contents
+        if k.endswith("/" + basename) and is_receipt_path(k)
+    ]
+    if matches:
+        return matches[0]
+    return file_contents.get(basename)
 
 
 def word_count(text: str) -> int:
@@ -96,14 +131,16 @@ def check_certificate(data: dict, packet: Packet) -> list[str]:
 
 
 def check_allowed_files(
-    changed: list[str], packet: Packet, *, extra_ok: tuple[str, ...] = DELIVERY_FILES
+    changed: list[str], packet: Packet, *, extra_ok: tuple[str, ...] | None = None
 ) -> list[str]:
+    cert_rel, sum_rel = receipt_files(packet.packet)
+    extra = extra_ok if extra_ok is not None else (cert_rel, sum_rel, "CERTIFICATE.json", "SUMMARY.md")
     allowed = set(packet.allowed_files)
-    allowed.update(extra_ok)
+    allowed.update(extra)
     allowed.add(packet.path)
     errors = []
     for path in changed:
-        if path.startswith(".rc/"):
+        if path.startswith(".rc/") or is_receipt_path(path):
             continue
         if path not in allowed:
             errors.append(f"diff touches file not in allowed_files: {path}")
@@ -112,8 +149,7 @@ def check_allowed_files(
 
 def check_tree(root: Path, packet: Packet, changed: list[str], *, require_delivery: bool) -> list[str]:
     errors: list[str] = []
-    cert_path = root / "CERTIFICATE.json"
-    summary_path = root / "SUMMARY.md"
+    cert_path, summary_path = resolve_receipt_paths(root, packet.packet)
     if require_delivery or cert_path.is_file() or summary_path.is_file():
         if not cert_path.is_file():
             errors.append("PR missing CERTIFICATE.json")
