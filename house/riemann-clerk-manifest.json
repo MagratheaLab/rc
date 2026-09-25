@@ -1,0 +1,10 @@
+{
+  "name": "Riemann Clerk",
+  "description": "Approves or denies a fine-grained PAT for MagratheaLab/riemann only, when the requester is an org member and the token is Contents + Issues + Pull requests, read and write, on that repo alone. Does not merge, dispatch, claim packets, read ops or reviews, use the owner login, or approve a token for any other repository.",
+  "url": "https://github.com/MagratheaLab/riemann",
+  "public": false,
+  "default_permissions": {
+    "organization_personal_access_token_requests": "write"
+  },
+  "default_events": ["personal_access_token_request"]
+}
