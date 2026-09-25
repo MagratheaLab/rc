@@ -215,7 +215,8 @@ class FakeGitHub(BaseHTTPRequestHandler):
                 names = {l["name"] for l in issue["labels"]}
                 if want and not set(want).issubset(names):
                     continue
-                if issue.get("state") != "open":
+                state = qs.get("state", ["open"])[0]
+                if state != "all" and issue.get("state") != "open":
                     continue
                 items.append(issue)
             return self._json(200, items)

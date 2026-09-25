@@ -48,6 +48,39 @@ class TestT4Review(unittest.TestCase):
             args.append("--adversary")
         return run_rc(args, self.env, self.world)
 
+    def test_review_next_skips_family_already_submitted(self):
+        self.store["open_prs"] = [
+            {
+                "number": 9,
+                "title": "P-20260914-fx01",
+                "body": "packet",
+                "head": {"ref": "packet/P-20260914-fx01"},
+            },
+            {
+                "number": 10,
+                "title": "docs",
+                "body": "onboarding",
+                "head": {"ref": "onboarding/docs"},
+            },
+        ]
+        code, out, err = run_rc(
+            ["review", "next", "--family", "A"], self.env, self.world
+        )
+        self.assertEqual(code, 0, err)
+        self.assertIn("packet=P-20260914-fx01", out)
+        self.assertIn("pr=9", out)
+        self._submit("A")
+        code, out, err = run_rc(
+            ["review", "next", "--family", "A"], self.env, self.world
+        )
+        self.assertEqual(code, 0, err)
+        self.assertIn("review=none", out)
+        code, out, err = run_rc(
+            ["review", "next", "--family", "B"], self.env, self.world
+        )
+        self.assertEqual(code, 0, err)
+        self.assertIn("packet=P-20260914-fx01", out)
+
     def test_one_verdict_stays_pending_not_on_world_pr(self):
         code, out, err = self._submit("A")
         self.assertEqual(code, 0, err)

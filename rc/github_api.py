@@ -71,8 +71,10 @@ class GitHub:
             {"body": body},
         )
 
-    def list_issues(self, owner: str, repo: str, labels: str = "") -> list[dict]:
-        q = f"?state=open&per_page=100"
+    def list_issues(
+        self, owner: str, repo: str, labels: str = "", state: str = "open"
+    ) -> list[dict]:
+        q = f"?state={quote(state, safe='')}&per_page=100"
         if labels:
             q += f"&labels={quote(labels, safe=',')}"
         data = self.get(f"/repos/{quote(owner)}/{quote(repo)}/issues{q}")
