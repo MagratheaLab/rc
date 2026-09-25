@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import re
 import sys
 
 from rc.cmd_merge_check import parse_reviews
@@ -10,6 +12,7 @@ from rc.config import Config
 from rc.github_api import GitHub, split_repo
 
 DEFAULT_REVIEW_REPO = "MagratheaLab/reviews"
+PACKET_RE = re.compile(r"P-\d{8}-[a-z0-9]+")
 
 
 def _block(packet: str, family: str, adversary: bool, verdict: str) -> str:
@@ -32,10 +35,13 @@ def run(cfg: Config, argv: list[str]) -> int:
     if not argv or argv[0] in {"-h", "--help"}:
         print("usage: rc review submit P-... --pr N --family X --verdict accept|reject [--adversary]")
         print("       rc review inbox P-...")
+        print("       rc review next --family X")
         return 2
     sub = argv[0]
     if sub == "inbox":
         return inbox(cfg, argv[1:])
+    if sub == "next":
+        return next_review(cfg, argv[1:])
     if sub != "submit":
         print(f"unknown review subcommand: {sub}", file=sys.stderr)
         return 2
@@ -89,6 +95,67 @@ def submit(cfg: Config, argv: list[str]) -> int:
         labels.append("published")
         gh.update_issue(ro, rr, item["number"], {"labels": labels, "state": "closed"})
     print("quorum=yes published=yes")
+    return 0
+
+
+def _review_repo(cfg: Config) -> str:
+    return os.environ.get("RC_REVIEW_REPO") or DEFAULT_REVIEW_REPO
+
+
+def _packet_of_pr(pr: dict) -> str | None:
+    head = ((pr.get("head") or {}).get("ref") or "")
+    if head.startswith("packet/"):
+        match = PACKET_RE.search(head)
+        if match:
+            return match.group(0)
+    blob = (pr.get("title") or "") + "\n" + (pr.get("body") or "")
+    match = PACKET_RE.search(blob)
+    return match.group(0) if match else None
+
+
+def _reviewed_packets(issues: list[dict], family: str) -> set[str]:
+    done: set[str] = set()
+    needle = f"family={family}".lower()
+    for issue in issues:
+        title = (issue.get("title") or "").lower()
+        if needle not in title:
+            continue
+        match = PACKET_RE.search(issue.get("title") or "")
+        if match:
+            done.add(match.group(0))
+    return done
+
+
+def next_review(cfg: Config, argv: list[str]) -> int:
+    p = argparse.ArgumentParser(prog="rc review next")
+    p.add_argument("--family", required=True)
+    p.add_argument("--world-repo", default=cfg.repo or "MagratheaLab/riemann")
+    args = p.parse_args(argv)
+    if not cfg.token:
+        print("GH_TOKEN required", file=sys.stderr)
+        return 1
+    gh = GitHub(cfg.github_api, cfg.token)
+    wo, wr = split_repo(args.world_repo)
+    ro, rr = split_repo(_review_repo(cfg))
+    seen = _reviewed_packets(
+        gh.list_issues(ro, rr, labels="packet", state="all"),
+        args.family,
+    )
+    waiting = []
+    for pr in gh.list_open_prs(wo, wr):
+        packet = _packet_of_pr(pr)
+        if not packet or packet in seen:
+            continue
+        head = ((pr.get("head") or {}).get("ref") or "")
+        if not head.startswith("packet/"):
+            continue
+        waiting.append((pr.get("number") or 0, packet))
+    waiting.sort()
+    if not waiting:
+        print(f"review=none\nfamily={args.family}")
+        return 0
+    number, packet = waiting[0]
+    print(f"packet={packet}\npr={number}\nfamily={args.family}")
     return 0
 
 
