@@ -11,8 +11,9 @@ test:t0-t3:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-# Riemann Clerk. No GitLab MCP. Variables are set in the GitLab UI, not in git.
-# Schedule this job in GitLab (CI/CD → Schedules) after the App PEM exists.
+# Riemann Clerk. Variables are set in the GitLab UI, not in git.
+# Schedule this job after CLERK_APP_ID, CLERK_INSTALLATION_ID, and CLERK_APP_PEM exist.
+# CLERK_DRY_RUN=1 logs decisions and does not approve or deny.
 clerk:pat:
   image: python:3.12-bookworm
   stage: test
