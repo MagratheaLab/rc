@@ -1,6 +1,6 @@
 {
   "name": "Riemann Clerk",
-  "description": "Approves or denies a fine-grained PAT. Worker token: MagratheaLab/riemann only, Contents + Issues + Pull requests read and write. Beta team riemann-betatester-group01 only: riemann and reviews, Contents read, Issues write, Pull requests read. Does not merge, dispatch, claim packets, read ops, use the owner login, or approve any wider token. The app itself does not read reviews.",
+  "description": "Approves or denies a fine-grained PAT. Worker token: MagratheaLab/riemann only, Contents + Issues + Pull requests read and write. Beta team riemann-betatester-group01 only: riemann and riemann-reviews, Contents read, Issues write, Pull requests read. Does not merge, dispatch, claim packets, read ops, use the owner login, or approve any wider token. The app itself does not read riemann-reviews.",
   "url": "https://github.com/MagratheaLab/riemann",
   "public": false,
   "default_permissions": {

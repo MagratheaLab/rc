@@ -7,7 +7,7 @@ It does not merge, dispatch, or claim packets.
 from __future__ import annotations
 
 WORLD_REPO = "riemann"
-REVIEW_REPO = "reviews"
+REVIEW_REPO = "riemann-reviews"
 BETA_TEAM = "riemann-betatester-group01"
 AGENTS_TEAM = "agents"
 ALLOWED_WRITE = frozenset({"contents", "issues", "pull_requests"})

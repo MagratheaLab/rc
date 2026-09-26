@@ -32,7 +32,7 @@ class TestClerkPat(unittest.TestCase):
 
     def test_deny_extra_repo(self):
         decision, _ = decide(
-            _ok(repositories=[{"name": "riemann"}, {"name": "reviews"}])
+            _ok(repositories=[{"name": "riemann"}, {"name": "riemann-reviews"}])
         )
         self.assertEqual(decision, "deny")
 
@@ -76,7 +76,7 @@ class TestClerkPat(unittest.TestCase):
     def _beta(self, **overrides):
         req = {
             "repository_selection": "subset",
-            "repositories": [{"name": "reviews"}, {"name": "riemann"}],
+            "repositories": [{"name": "riemann-reviews"}, {"name": "riemann"}],
             "permissions": {
                 "repository": {
                     "contents": "read",
