@@ -25,7 +25,7 @@ class TestT4Review(unittest.TestCase):
         self.gh_url, self.gh = serve(FakeGitHub, store=self.store)
         self.core_url, self.core = serve(FakeCore, skill=dict(SKILL))
         self.env = env_for(self.world, self.gh_url, self.core_url)
-        self.env["RC_REVIEW_REPO"] = "MagratheaLab/reviews"
+        self.env["RC_REVIEW_REPO"] = "MagratheaLab/riemann-reviews"
 
     def tearDown(self):
         self.gh.shutdown()

@@ -1,4 +1,4 @@
-"""Blind review submit. Store is MagratheaLab/reviews until quorum."""
+"""Blind review submit. Riemann store is MagratheaLab/riemann-reviews until quorum."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from rc.cmd_merge_check import parse_reviews
 from rc.config import Config
 from rc.github_api import GitHub, split_repo
 
-DEFAULT_REVIEW_REPO = "MagratheaLab/reviews"
+DEFAULT_REVIEW_REPO = "MagratheaLab/riemann-reviews"
 PACKET_RE = re.compile(r"P-\d{8}-[a-z0-9]+")
 
 

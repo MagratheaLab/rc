@@ -54,7 +54,7 @@ class TestApplyPending(unittest.TestCase):
     def test_beta_member_is_approved(self):
         fake = Fake(
             _beta_request(),
-            [{"name": "riemann"}, {"name": "reviews"}],
+            [{"name": "riemann"}, {"name": "riemann-reviews"}],
             beta=True,
         )
         lines = apply_pending(fake)
@@ -65,7 +65,7 @@ class TestApplyPending(unittest.TestCase):
     def test_dry_run_does_not_post(self):
         fake = Fake(
             _beta_request(),
-            [{"name": "riemann"}, {"name": "reviews"}],
+            [{"name": "riemann"}, {"name": "riemann-reviews"}],
             beta=True,
         )
         lines = apply_pending(fake, dry_run=True)
@@ -75,7 +75,7 @@ class TestApplyPending(unittest.TestCase):
     def test_stranger_reviewer_token_is_denied(self):
         fake = Fake(
             _beta_request(),
-            [{"name": "riemann"}, {"name": "reviews"}],
+            [{"name": "riemann"}, {"name": "riemann-reviews"}],
             beta=False,
         )
         lines = apply_pending(fake)
